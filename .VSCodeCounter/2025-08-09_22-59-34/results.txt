@@ -1,0 +1,162 @@
+Date : 2025-08-09 22:59:34
+Directory : d:\Dev\hilmi\hilmi
+Total : 77 files,  3292 codes, 349 comments, 522 blanks, all 4163 lines
+
+Languages
++-----------------+------------+------------+------------+------------+------------+
+| language        | files      | code       | comment    | blank      | total      |
++-----------------+------------+------------+------------+------------+------------+
+| Dart            |         13 |      1,065 |         28 |        109 |      1,202 |
+| C++             |         17 |        571 |        131 |        192 |        894 |
+| XML             |         14 |        506 |         53 |         16 |        575 |
+| CMake           |          9 |        488 |          0 |         95 |        583 |
+| JSON            |          6 |        303 |          0 |          4 |        307 |
+| Kotlin          |          5 |        201 |         36 |         49 |        286 |
+| Swift           |          6 |         67 |          7 |         21 |         95 |
+| YAML            |          2 |         51 |         79 |         20 |        150 |
+| HTML            |          1 |         19 |         15 |          5 |         39 |
+| Markdown        |          2 |         13 |          0 |          9 |         22 |
+| Java Properties |          2 |          8 |          0 |          2 |         10 |
++-----------------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                               | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                  |         77 |      3,292 |        349 |        522 |      4,163 |
+| . (Files)                                                                          |          4 |         62 |         79 |         27 |        168 |
+| android                                                                            |         17 |        360 |         87 |         66 |        513 |
+| android (Files)                                                                    |          3 |         42 |          0 |         10 |         52 |
+| android\app                                                                        |         13 |        313 |         87 |         55 |        455 |
+| android\app (Files)                                                                |          2 |        108 |          7 |         13 |        128 |
+| android\app\src                                                                    |         11 |        205 |         80 |         42 |        327 |
+| android\app\src\debug                                                              |          1 |          3 |          4 |          1 |          8 |
+| android\app\src\main                                                               |          9 |        199 |         72 |         40 |        311 |
+| android\app\src\main (Files)                                                       |          1 |         34 |         11 |          1 |         46 |
+| android\app\src\main\cpp                                                           |          2 |         31 |          0 |          6 |         37 |
+| android\app\src\main\kotlin                                                        |          2 |        108 |         29 |         27 |        164 |
+| android\app\src\main\kotlin\com                                                    |          2 |        108 |         29 |         27 |        164 |
+| android\app\src\main\kotlin\com\example                                            |          2 |        108 |         29 |         27 |        164 |
+| android\app\src\main\kotlin\com\example\hear_me                                    |          1 |          3 |          0 |          3 |          6 |
+| android\app\src\main\kotlin\com\example\hilmi                                      |          1 |        105 |         29 |         24 |        158 |
+| android\app\src\main\res                                                           |          4 |         26 |         32 |          6 |         64 |
+| android\app\src\main\res\drawable                                                  |          1 |          4 |          7 |          2 |         13 |
+| android\app\src\main\res\drawable-v21                                              |          1 |          4 |          7 |          2 |         13 |
+| android\app\src\main\res\values                                                    |          1 |          9 |          9 |          1 |         19 |
+| android\app\src\main\res\values-night                                              |          1 |          9 |          9 |          1 |         19 |
+| android\app\src\profile                                                            |          1 |          3 |          4 |          1 |          8 |
+| android\gradle                                                                     |          1 |          5 |          0 |          1 |          6 |
+| android\gradle\wrapper                                                             |          1 |          5 |          0 |          1 |          6 |
+| assets                                                                             |          4 |         36 |          0 |          4 |         40 |
+| ios                                                                                |          8 |        229 |          4 |         13 |        246 |
+| ios\Runner                                                                         |          7 |        222 |          2 |          9 |        233 |
+| ios\Runner (Files)                                                                 |          2 |         13 |          0 |          3 |         16 |
+| ios\RunnerTests                                                                    |          1 |          7 |          2 |          4 |         13 |
+| ios\Runner\Assets.xcassets                                                         |          3 |        148 |          0 |          4 |        152 |
+| ios\Runner\Assets.xcassets\AppIcon.appiconset                                      |          1 |        122 |          0 |          1 |        123 |
+| ios\Runner\Assets.xcassets\LaunchImage.imageset                                    |          2 |         26 |          0 |          3 |         29 |
+| ios\Runner\Base.lproj                                                              |          2 |         61 |          2 |          2 |         65 |
+| lib                                                                                |         12 |      1,051 |         18 |        102 |      1,171 |
+| linux                                                                              |          9 |        331 |         37 |         92 |        460 |
+| linux (Files)                                                                      |          1 |        104 |          0 |         25 |        129 |
+| linux\flutter                                                                      |          4 |        111 |          9 |         27 |        147 |
+| linux\runner                                                                       |          4 |        116 |         28 |         40 |        184 |
+| macos                                                                              |          6 |        459 |          5 |         17 |        481 |
+| macos\Flutter                                                                      |          1 |         18 |          3 |          4 |         25 |
+| macos\Runner                                                                       |          4 |        434 |          0 |          9 |        443 |
+| macos\Runner (Files)                                                               |          2 |         23 |          0 |          7 |         30 |
+| macos\RunnerTests                                                                  |          1 |          7 |          2 |          4 |         13 |
+| macos\Runner\Assets.xcassets                                                       |          1 |         68 |          0 |          1 |         69 |
+| macos\Runner\Assets.xcassets\AppIcon.appiconset                                    |          1 |         68 |          0 |          1 |         69 |
+| macos\Runner\Base.lproj                                                            |          1 |        343 |          0 |          1 |        344 |
+| test                                                                               |          1 |         14 |         10 |          7 |         31 |
+| web                                                                                |          2 |         54 |         15 |          6 |         75 |
+| windows                                                                            |         14 |        696 |         94 |        188 |        978 |
+| windows (Files)                                                                    |          1 |         89 |          0 |         20 |        109 |
+| windows\flutter                                                                    |          4 |        145 |          9 |         29 |        183 |
+| windows\runner                                                                     |          9 |        462 |         85 |        139 |        686 |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------------------------------+-----------------+------------+------------+------------+------------+
+| filename                                                                           | language        | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+-----------------+------------+------------+------------+------------+
+| d:\Dev\hilmi\hilmi\README.md                                                       | Markdown        |         10 |          0 |          7 |         17 |
+| d:\Dev\hilmi\hilmi\analysis_options.yaml                                           | YAML            |          3 |         22 |          4 |         29 |
+| d:\Dev\hilmi\hilmi\android\app\build.gradle.kts                                    | Kotlin          |         54 |          7 |         13 |         74 |
+| d:\Dev\hilmi\hilmi\android\app\google-services.json                                | JSON            |         54 |          0 |          0 |         54 |
+| d:\Dev\hilmi\hilmi\android\app\src\debug\AndroidManifest.xml                       | XML             |          3 |          4 |          1 |          8 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\AndroidManifest.xml                        | XML             |         34 |         11 |          1 |         46 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\cpp\CMakeLists.txt                         | CMake           |         19 |          0 |          3 |         22 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\cpp\native-lib.cpp                         | C++             |         12 |          0 |          3 |         15 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\kotlin\com\example\hear_me\MainActivity.kt | Kotlin          |          3 |          0 |          3 |          6 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\kotlin\com\example\hilmi\MainActivity.kt   | Kotlin          |        105 |         29 |         24 |        158 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\res\drawable-v21\launch_background.xml     | XML             |          4 |          7 |          2 |         13 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\res\drawable\launch_background.xml         | XML             |          4 |          7 |          2 |         13 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\res\values-night\styles.xml                | XML             |          9 |          9 |          1 |         19 |
+| d:\Dev\hilmi\hilmi\android\app\src\main\res\values\styles.xml                      | XML             |          9 |          9 |          1 |         19 |
+| d:\Dev\hilmi\hilmi\android\app\src\profile\AndroidManifest.xml                     | XML             |          3 |          4 |          1 |          8 |
+| d:\Dev\hilmi\hilmi\android\build.gradle.kts                                        | Kotlin          |         18 |          0 |          4 |         22 |
+| d:\Dev\hilmi\hilmi\android\gradle.properties                                       | Java Properties |          3 |          0 |          1 |          4 |
+| d:\Dev\hilmi\hilmi\android\gradle\wrapper\gradle-wrapper.properties                | Java Properties |          5 |          0 |          1 |          6 |
+| d:\Dev\hilmi\hilmi\android\settings.gradle.kts                                     | Kotlin          |         21 |          0 |          5 |         26 |
+| d:\Dev\hilmi\hilmi\assets\google.svg                                               | XML             |          9 |          0 |          1 |         10 |
+| d:\Dev\hilmi\hilmi\assets\onboarding1.svg                                          | XML             |          9 |          0 |          1 |         10 |
+| d:\Dev\hilmi\hilmi\assets\onboarding2.svg                                          | XML             |          9 |          0 |          1 |         10 |
+| d:\Dev\hilmi\hilmi\assets\onboarding3.svg                                          | XML             |          9 |          0 |          1 |         10 |
+| d:\Dev\hilmi\hilmi\firebase.json                                                   | JSON            |          1 |          0 |          0 |          1 |
+| d:\Dev\hilmi\hilmi\ios\RunnerTests\RunnerTests.swift                               | Swift           |          7 |          2 |          4 |         13 |
+| d:\Dev\hilmi\hilmi\ios\Runner\AppDelegate.swift                                    | Swift           |         12 |          0 |          2 |         14 |
+| d:\Dev\hilmi\hilmi\ios\Runner\Assets.xcassets\AppIcon.appiconset\Contents.json     | JSON            |        122 |          0 |          1 |        123 |
+| d:\Dev\hilmi\hilmi\ios\Runner\Assets.xcassets\LaunchImage.imageset\Contents.json   | JSON            |         23 |          0 |          1 |         24 |
+| d:\Dev\hilmi\hilmi\ios\Runner\Assets.xcassets\LaunchImage.imageset\README.md       | Markdown        |          3 |          0 |          2 |          5 |
+| d:\Dev\hilmi\hilmi\ios\Runner\Base.lproj\LaunchScreen.storyboard                   | XML             |         36 |          1 |          1 |         38 |
+| d:\Dev\hilmi\hilmi\ios\Runner\Base.lproj\Main.storyboard                           | XML             |         25 |          1 |          1 |         27 |
+| d:\Dev\hilmi\hilmi\ios\Runner\Runner-Bridging-Header.h                             | C++             |          1 |          0 |          1 |          2 |
+| d:\Dev\hilmi\hilmi\lib\constant.dart                                               | Dart            |          8 |          0 |          1 |          9 |
+| d:\Dev\hilmi\hilmi\lib\current_session_model.dart                                  | Dart            |         14 |          0 |          1 |         15 |
+| d:\Dev\hilmi\hilmi\lib\firebase_options.dart                                       | Dart            |         70 |         12 |          7 |         89 |
+| d:\Dev\hilmi\hilmi\lib\gemini_test.dart                                            | Dart            |         76 |          0 |         11 |         87 |
+| d:\Dev\hilmi\hilmi\lib\hand_landmarker_service.dart                                | Dart            |         52 |          1 |          8 |         61 |
+| d:\Dev\hilmi\hilmi\lib\login.dart                                                  | Dart            |        151 |          1 |         20 |        172 |
+| d:\Dev\hilmi\hilmi\lib\main.dart                                                   | Dart            |        383 |          0 |         25 |        408 |
+| d:\Dev\hilmi\hilmi\lib\new_onboarding_page.dart                                    | Dart            |         15 |          0 |          4 |         19 |
+| d:\Dev\hilmi\hilmi\lib\onboarding_page.dart                                        | Dart            |        143 |          0 |          7 |        150 |
+| d:\Dev\hilmi\hilmi\lib\onboarding_provider.dart                                    | Dart            |         22 |          0 |          6 |         28 |
+| d:\Dev\hilmi\hilmi\lib\realtime_bisindo.dart                                       | Dart            |          0 |          0 |          1 |          1 |
+| d:\Dev\hilmi\hilmi\lib\transcription_page.dart                                     | Dart            |        117 |          4 |         11 |        132 |
+| d:\Dev\hilmi\hilmi\linux\CMakeLists.txt                                            | CMake           |        104 |          0 |         25 |        129 |
+| d:\Dev\hilmi\hilmi\linux\flutter\CMakeLists.txt                                    | CMake           |         79 |          0 |         10 |         89 |
+| d:\Dev\hilmi\hilmi\linux\flutter\generated_plugin_registrant.cc                    | C++             |          7 |          4 |          5 |         16 |
+| d:\Dev\hilmi\hilmi\linux\flutter\generated_plugin_registrant.h                     | C++             |          5 |          5 |          6 |         16 |
+| d:\Dev\hilmi\hilmi\linux\flutter\generated_plugins.cmake                           | CMake           |         20 |          0 |          6 |         26 |
+| d:\Dev\hilmi\hilmi\linux\runner\CMakeLists.txt                                     | CMake           |         21 |          0 |          6 |         27 |
+| d:\Dev\hilmi\hilmi\linux\runner\main.cc                                            | C++             |          5 |          0 |          2 |          7 |
+| d:\Dev\hilmi\hilmi\linux\runner\my_application.cc                                  | C++             |         83 |         21 |         27 |        131 |
+| d:\Dev\hilmi\hilmi\linux\runner\my_application.h                                   | C++             |          7 |          7 |          5 |         19 |
+| d:\Dev\hilmi\hilmi\macos\Flutter\GeneratedPluginRegistrant.swift                   | Swift           |         18 |          3 |          4 |         25 |
+| d:\Dev\hilmi\hilmi\macos\RunnerTests\RunnerTests.swift                             | Swift           |          7 |          2 |          4 |         13 |
+| d:\Dev\hilmi\hilmi\macos\Runner\AppDelegate.swift                                  | Swift           |         11 |          0 |          3 |         14 |
+| d:\Dev\hilmi\hilmi\macos\Runner\Assets.xcassets\AppIcon.appiconset\Contents.json   | JSON            |         68 |          0 |          1 |         69 |
+| d:\Dev\hilmi\hilmi\macos\Runner\Base.lproj\MainMenu.xib                            | XML             |        343 |          0 |          1 |        344 |
+| d:\Dev\hilmi\hilmi\macos\Runner\MainFlutterWindow.swift                            | Swift           |         12 |          0 |          4 |         16 |
+| d:\Dev\hilmi\hilmi\pubspec.yaml                                                    | YAML            |         48 |         57 |         16 |        121 |
+| d:\Dev\hilmi\hilmi\test\widget_test.dart                                           | Dart            |         14 |         10 |          7 |         31 |
+| d:\Dev\hilmi\hilmi\web\index.html                                                  | HTML            |         19 |         15 |          5 |         39 |
+| d:\Dev\hilmi\hilmi\web\manifest.json                                               | JSON            |         35 |          0 |          1 |         36 |
+| d:\Dev\hilmi\hilmi\windows\CMakeLists.txt                                          | CMake           |         89 |          0 |         20 |        109 |
+| d:\Dev\hilmi\hilmi\windows\flutter\CMakeLists.txt                                  | CMake           |         98 |          0 |         12 |        110 |
+| d:\Dev\hilmi\hilmi\windows\flutter\generated_plugin_registrant.cc                  | C++             |         18 |          4 |          5 |         27 |
+| d:\Dev\hilmi\hilmi\windows\flutter\generated_plugin_registrant.h                   | C++             |          5 |          5 |          6 |         16 |
+| d:\Dev\hilmi\hilmi\windows\flutter\generated_plugins.cmake                         | CMake           |         24 |          0 |          6 |         30 |
+| d:\Dev\hilmi\hilmi\windows\runner\CMakeLists.txt                                   | CMake           |         34 |          0 |          7 |         41 |
+| d:\Dev\hilmi\hilmi\windows\runner\flutter_window.cpp                               | C++             |         49 |          7 |         16 |         72 |
+| d:\Dev\hilmi\hilmi\windows\runner\flutter_window.h                                 | C++             |         20 |          5 |          9 |         34 |
+| d:\Dev\hilmi\hilmi\windows\runner\main.cpp                                         | C++             |         30 |          4 |         10 |         44 |
+| d:\Dev\hilmi\hilmi\windows\runner\resource.h                                       | C++             |          9 |          6 |          2 |         17 |
+| d:\Dev\hilmi\hilmi\windows\runner\utils.cpp                                        | C++             |         54 |          2 |         10 |         66 |
+| d:\Dev\hilmi\hilmi\windows\runner\utils.h                                          | C++             |          8 |          6 |          6 |         20 |
+| d:\Dev\hilmi\hilmi\windows\runner\win32_window.cpp                                 | C++             |        210 |         24 |         55 |        289 |
+| d:\Dev\hilmi\hilmi\windows\runner\win32_window.h                                   | C++             |         48 |         31 |         24 |        103 |
+| Total                                                                              |                 |      3,292 |        349 |        522 |      4,163 |
++------------------------------------------------------------------------------------+-----------------+------------+------------+------------+------------+
