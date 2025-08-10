@@ -3,12 +3,11 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hear_me/constant.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hear_me/gemini_test.dart';
 import 'package:hear_me/login.dart';
-import 'package:hear_me/new_onboarding_page.dart';
+import 'package:hear_me/onboarding_page_windows.dart';
 import 'package:hear_me/onboarding_page.dart';
 import 'package:hear_me/onboarding_provider.dart';
 import 'package:hear_me/realtime_bisindo.dart';
@@ -21,9 +20,6 @@ List<CameraDescription> cameras = [];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await GoogleSignIn.instance.initialize(
-    serverClientId: '591091586203-km1a7uulr152q2aic5n8vdhlg6hnm88m.apps.googleusercontent.com',
-  );
   cameras = await availableCameras();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -44,20 +40,44 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: Platform.isWindows ? '/new-onboarding' : '/get-started',
-      routes: {
-        '/': (context) => OnboardingScreen(),
-        '/new-onboarding': (context) => const NewOnboardingPage(),
-        '/get-started': (context) => const GetStarted(),
-        '/gemini': (context) => GeminiClientScreen(),
-        '/home': (context) => const HomePage(),
-        '/stt' : (context) => const TranscriptionPage(),
-      },
       title: 'Hear Me',
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(
+              builder: (_) => Platform.isWindows
+                  ? const OnboardingPageWindows()
+                  : const GetStarted(), 
+            );
+
+          case '/new-onboarding':
+            if (Platform.isWindows) {
+              return MaterialPageRoute(builder: (_) => const OnboardingPageWindows());
+            }
+            return MaterialPageRoute(builder: (_) => const GetStarted());
+
+          case '/get-started':
+            return MaterialPageRoute(builder: (_) => const GetStarted());
+
+          case '/gemini':
+            // Pastikan GeminiClientScreen sudah didefinisikan
+            return MaterialPageRoute(builder: (_) => GeminiClientScreen());
+
+          case '/home':
+            return MaterialPageRoute(builder: (_) => const HomePage());
+
+          case '/stt':
+            return MaterialPageRoute(builder: (_) => const TranscriptionPage());
+
+          // Default case jika rute tidak ditemukan
+          default:
+            return MaterialPageRoute(builder: (_) => const GetStarted());
+        }
+      },
     );
   }
 }
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -205,7 +225,8 @@ class _HomePageState extends State<HomePage> {
                 StatistikPembelajaran(),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/stt');
+                
+                    Navigator.pushNamed(context, '/get-started');
                   },
                  child: Container(
                     width: MediaQuery.sizeOf(context).width,
@@ -216,7 +237,7 @@ class _HomePageState extends State<HomePage> {
                       border: Border.all(color: Colors.black, width: 1),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Text('bisindo test', style: GoogleFonts.plusJakartaSans(
+                    child: Text('Sign Out', style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
