@@ -13,7 +13,7 @@ class _GeminiClientScreenState extends State<GeminiClientScreen> {
   String _responseText = '';
   bool _isLoading = false;
 
-  final String _apiKey = 'AIzaSyBX3bid20I18W9uLvomJXTnziFHQ1aRO4A'; // Ganti dengan API kamu
+  final String _apiKey = ''; 
 
   Future<void> _sendPrompt() async {
     final prompt = _promptController.text.trim();

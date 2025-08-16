@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb; // Untuk mendeteksi platform web
-import 'dart:io' show Platform; // Untuk mendeteksi platform desktop
+import 'package:flutter/foundation.dart' show kIsWeb; 
+import 'dart:io' show Platform; 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -43,7 +43,6 @@ class LoginButton extends StatefulWidget {
 class _LoginButtonState extends State<LoginButton> {
   bool _isSigningIn = false;
 
-  // Fungsi untuk menangani proses login Google
   Future<void> _signInWithGoogle() async {
     setState(() {
       _isSigningIn = true;
@@ -52,37 +51,26 @@ class _LoginButtonState extends State<LoginButton> {
     UserCredential? userCredential;
 
     try {
-      // 1. Buat instance GoogleAuthProvider
       GoogleAuthProvider googleProvider = GoogleAuthProvider();
-
-      // 2. Panggil signInWithPopup. Ini akan membuka browser untuk login.
-      // Ini adalah metode yang direkomendasikan untuk Web dan Desktop.
       userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
     } on FirebaseAuthException catch (e) {
-      // Menangani error spesifik dari Firebase Auth
-      // Contoh: pengguna menutup jendela popup browser
       if (e.code == 'auth/popup-closed-by-user') {
         print('Jendela login ditutup oleh pengguna.');
       } else {
         print('Login gagal: ${e.message}');
       }
     } catch (e) {
-      // Menangani error lainnya
       print('Terjadi error tak terduga: $e');
     } finally {
-      // 3. Pastikan indikator loading berhenti setelah proses selesai
       setState(() {
         _isSigningIn = false;
       });
     }
 
-    // 4. Jika login berhasil, navigasi ke halaman home
     if (userCredential != null) {
-      // Gunakan 'mounted' untuk memastikan widget masih ada di tree
       if (!mounted) return;
       Navigator.pushNamed(context, '/home', arguments: userCredential.user);
     } else {
-      // Menampilkan pesan error jika login gagal atau dibatalkan
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -94,8 +82,6 @@ class _LoginButtonState extends State<LoginButton> {
 
   @override
   Widget build(BuildContext context) {
-    // Cek apakah platform saat ini adalah desktop atau web
-    // `signInWithPopup` hanya didukung di platform ini.
     bool isDesktopOrWeb = !Platform.isIOS && !Platform.isAndroid;
     if (kIsWeb) {
       isDesktopOrWeb = true;

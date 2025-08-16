@@ -1,6 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hear_me/login.dart';
+import 'package:http/http.dart' as http;
+import 'package:shelf/shelf.dart' as shelf;
+import 'package:toastification/toastification.dart' show toastification, ToastificationType, ToastificationStyle;
+
+import 'package:url_launcher/url_launcher.dart';
 
 class OnboardingPageWindows extends StatelessWidget {
   const OnboardingPageWindows({super.key});
@@ -32,34 +41,47 @@ class _LeftPanel extends StatelessWidget {
       child: Container(
         color: const Color(0xFF1A3D63), // Warna biru tua
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 65),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.only(top: 60, left: 65, right: 65),
+          child: Stack(
             children: [
-              Image.asset(
-                'assets/hearme_white.png',
-                height: 20,
-              ),
-              const Spacer(),
-              Text(
-                'Pendidikan Inklusif untuk Semua Orang',
-                style: GoogleFonts.plusJakartaSans(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
+              Positioned.fill(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Image.asset(
+                      'assets/hearme_white.png',
+                      height: 20,
+                    ),
+                    const SizedBox(height: 140,),
+                    Text(
+                      'Pendidikan Inklusif untuk Semua Orang',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                    ),
+                    const Spacer(), // Mendorong konten ke tengah
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-                style: GoogleFonts.plusJakartaSans(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Image.asset('assets/orang_atas.png',
+                    height: 250, 
+                    fit: BoxFit.cover), // 
               ),
-              const Spacer(), // Mendorong konten ke tengah
             ],
           ),
         ),
@@ -68,8 +90,6 @@ class _LeftPanel extends StatelessWidget {
   }
 }
 
-// --- PERUBAHAN UTAMA DI SINI ---
-// Mengubah _RightPanel menjadi StatefulWidget
 class _RightPanel extends StatefulWidget {
   const _RightPanel();
 
@@ -78,22 +98,126 @@ class _RightPanel extends StatefulWidget {
 }
 
 class _RightPanelState extends State<_RightPanel> {
-  // State untuk mengontrol tampilan mana yang aktif
-  bool _showLoginView = false;
-  String _selectedRole = '';
+  bool _showRoleSelectionView = false;
+  bool _isSigningIn = false; // State untuk loading
 
-  // Fungsi untuk beralih ke tampilan login
-  void _selectRole(String role) {
+  // --- FUNGSI AUTENTIKASI GOOGLE UNTUK DESKTOP ---
+  Future<void> _signInWithGoogle() async {
     setState(() {
-      _selectedRole = role;
-      _showLoginView = true;
+      _isSigningIn = true;
+    });
+
+    HttpServer? server;
+    try {
+      // 1. Dapatkan Client ID dan Secret dari Google Cloud Console Anda
+      //    (dari kredensial OAuth 2.0 tipe "Web application")
+      const String clientId =
+          "591091586203-ms37g52nl2rcr9eqd9m20qo4e23jre38.apps.googleusercontent.com"; // Ganti dengan Web Client ID Anda
+      const String clientSecret =
+          "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"; // <-- PENTING: Ganti dengan Client Secret Anda
+
+      // 2. Mulai server lokal untuk mendengarkan redirect dari Google
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final String redirectUrl = 'http://localhost:${server.port}';
+
+      // 3. Buat URL otentikasi dan buka di browser
+      final Uri authUrl =
+          Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
+        'client_id': clientId,
+        'redirect_uri': redirectUrl,
+        'response_type': 'code',
+        'scope': 'email profile openid',
+      });
+
+      if (await canLaunchUrl(authUrl)) {
+        await launchUrl(authUrl, webOnlyWindowName: '_blank');
+      } else {
+        throw 'Tidak dapat membuka browser.';
+      }
+
+      // 4. Tunggu browser memanggil kembali server lokal kita
+      final request = await server.first;
+      final code = request.uri.queryParameters['code'];
+
+      // Kirim respons ke browser agar tab bisa ditutup
+      request.response
+        ..statusCode = 200
+        ..headers.contentType = ContentType.html
+        ..write(
+            '<html><body>Anda bisa menutup jendela ini sekarang.</body></html>')
+        ..close();
+
+      if (code == null) {
+        throw 'Proses login dibatalkan atau gagal.';
+      }
+
+      final tokenResponse = await http.post(
+        Uri.parse('https://oauth2.googleapis.com/token'),
+        body: {
+          'client_id': clientId,
+          'client_secret': clientSecret,
+          'code': code,
+          'grant_type': 'authorization_code',
+          'redirect_uri': redirectUrl,
+        },
+      );
+
+      if (tokenResponse.statusCode != 200) {
+        throw 'Gagal mendapatkan token dari Google: ${tokenResponse.body}';
+      }
+
+      final tokens = jsonDecode(tokenResponse.body);
+      final String idToken = tokens['id_token'];
+      final String accessToken = tokens['access_token'];
+
+      // 6. Gunakan token untuk sign in ke Firebase
+      final authCredential = GoogleAuthProvider.credential(
+        accessToken: accessToken,
+        idToken: idToken,
+      );
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(authCredential);
+
+      if (userCredential.user != null) {
+        print(
+            "Login Google berhasil untuk ${userCredential.user!.displayName}");
+        _proceedToRoleSelection();
+        toastification.show(
+        context: context, 
+        type: ToastificationType.success,
+        style: ToastificationStyle.fillColored,
+        title: Text('Login berhasil!'),
+        autoCloseDuration: const Duration(seconds: 5),
+      );
+        
+      }
+    } catch (e) {
+      print('Error saat login: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login gagal: $e')),
+        );
+      }
+    } finally {
+      await server?.close(); // Pastikan server selalu ditutup
+      if (mounted) {
+        setState(() {
+          _isSigningIn = false;
+        });
+      }
+    }
+  }
+
+  void _proceedToRoleSelection() {
+    setState(() {
+      _showRoleSelectionView = true;
     });
   }
 
-  // Fungsi untuk kembali ke pemilihan peran
-  void _goBack() {
+  void _goBackToLogin() {
     setState(() {
-      _showLoginView = false;
+      _showRoleSelectionView = false;
     });
   }
 
@@ -104,66 +228,46 @@ class _RightPanelState extends State<_RightPanel> {
       child: Container(
         color: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 100),
-        // AnimatedSwitcher untuk memberikan transisi fade antar tampilan
-        child: // Di dalam method build() di _RightPanelState
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300), 
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  // Tween untuk animasi masuk (dari kanan ke tengah)
-                  final inAnimation = Tween<Offset>(
-                    begin: const Offset(0.5, 0.0),
-                    end: Offset.zero,
-                  ).animate(animation);
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            final inAnimation = Tween<Offset>(
+              begin: const Offset(0.5, 0.0),
+              end: Offset.zero,
+            ).animate(animation);
+            final outAnimation = Tween<Offset>(
+              begin: const Offset(-0.5, 0.0),
+              end: Offset.zero,
+            ).animate(animation);
 
-                  // Tween untuk animasi keluar (dari tengah ke kiri)
-                  final outAnimation = Tween<Offset>(
-                    begin: const Offset(-0.5, 0.0),
-                    end: Offset.zero,
-                  ).animate(animation);
-
-                  // Tentukan animasi mana yang digunakan berdasarkan key dari child
-                  if (child.key == const ValueKey('LoginView')) {
-                    // Widget baru masuk, gunakan kombinasi Slide dan Fade
-                    return ClipRect(
-                      child: SlideTransition(
-                        position: inAnimation,
-                        child: FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        ),
-                      ),
-                    );
-                  } else {
-                    // Widget lama keluar, gunakan kombinasi Slide dan Fade
-                    return ClipRect(
-                      child: SlideTransition(
-                        position: outAnimation,
-                        child: FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                // Switcher akan memilih widget mana yang ditampilkan berdasarkan state
-                child: _showLoginView
-                    ? _buildLoginView() // Tampilan Login
-                    : _buildRoleSelectionView(), // Tampilan Awal
-              )
+            if (child.key == const ValueKey('RoleSelectionView')) {
+              return ClipRect(
+                  child: SlideTransition(
+                      position: inAnimation,
+                      child: FadeTransition(opacity: animation, child: child)));
+            } else {
+              return ClipRect(
+                  child: SlideTransition(
+                      position: outAnimation,
+                      child: FadeTransition(opacity: animation, child: child)));
+            }
+          },
+          child: _showRoleSelectionView
+              ? _buildRoleSelectionView()
+              : _buildLoginView(),
+        ),
       ),
     );
   }
 
-  // Widget untuk membangun tampilan pemilihan peran
-  Widget _buildRoleSelectionView() {
+  Widget _buildLoginView() {
     return Column(
-      key: const ValueKey('RoleSelectionView'), // Key untuk AnimatedSwitcher
+      key: const ValueKey('LoginView'),
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Pilih peran anda !',
+          'Mulai Gunakan Aplikasi Ini!',
           style: GoogleFonts.plusJakartaSans(
             color: Colors.black,
             fontSize: 32,
@@ -179,28 +283,30 @@ class _RightPanelState extends State<_RightPanel> {
           ),
         ),
         const SizedBox(height: 40),
-        _RoleButton(
-          text: 'Dosen',
-          onTap: () => _selectRole('Dosen'),
+        _LoginHoverButton(
+          text: 'Login dengan Akun UM',
+          onTap: _isSigningIn ? () {} : _proceedToRoleSelection,
+          imageAsset: 'assets/Lambang-UM.png',
         ),
         const SizedBox(height: 20),
-        _RoleButton(
-          text: 'Mahasiswa',
-          onTap: () => _selectRole('Mahasiswa'),
+        _LoginHoverButton(
+          text: 'Login dengan Google',
+          isLoading: _isSigningIn,
+          onTap: _signInWithGoogle,
+          imageAsset: 'assets/google_new.png',
         ),
       ],
     );
   }
 
-  // Widget untuk membangun tampilan login setelah peran dipilih
-  Widget _buildLoginView() {
+  Widget _buildRoleSelectionView() {
     return Column(
-      key: const ValueKey('LoginView'),
+      key: const ValueKey('RoleSelectionView'),
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Mulai Gunakan Aplikasi Ini!',
+          'Pilih peran anda !',
           style: GoogleFonts.plusJakartaSans(
             color: Colors.black,
             fontSize: 32,
@@ -208,14 +314,27 @@ class _RightPanelState extends State<_RightPanel> {
           ),
         ),
         const SizedBox(height: 40),
-        LoginButton(),
+        _RoleButton(
+          text: 'Dosen',
+          onTap: () {
+            print('Peran Dosen dipilih. Navigasi ke halaman utama...');
+          },
+        ),
+        const SizedBox(height: 20),
+        _RoleButton(
+          text: 'Mahasiswa',
+          onTap: () {
+            print('Peran Mahasiswa dipilih. Navigasi ke halaman utama...');
+            Navigator.pushNamed(context, '/home-mahasiswa');
+          },
+        ),
         const SizedBox(height: 30),
         GestureDetector(
-          onTap: _goBack, // Fungsi untuk kembali
+          onTap: _goBackToLogin,
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
             child: Text(
-              '<< Kembali pilih peran',
+              '<< Kembali ke Login',
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.grey[700],
                 fontSize: 14,
@@ -229,14 +348,108 @@ class _RightPanelState extends State<_RightPanel> {
   }
 }
 
-// Widget tombol yang sudah memiliki efek hover
+class _LoginHoverButton extends StatefulWidget {
+  final String text;
+  final VoidCallback onTap;
+  final bool isLoading;
+  final String? imageAsset; // Optional image asset for the button
+
+  const _LoginHoverButton({
+    required this.text,
+    required this.onTap,
+    this.isLoading = false,
+    this.imageAsset,
+  });
+
+  @override
+  State<_LoginHoverButton> createState() => _LoginHoverButtonState();
+}
+
+class _LoginHoverButtonState extends State<_LoginHoverButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color currentBackgroundColor =
+        _isHovered ? const Color(0xFF1A3D63) : const Color(0XFFCBE4FF);
+    final Color currentTextColor = _isHovered ? Colors.white : Colors.black;
+    final Border? currentBorder =
+        _isHovered ? null : Border.all(color: Colors.black, width: 1);
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.isLoading ? null : widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          width: MediaQuery.of(context).size.width * 0.35, // Match login.dart width
+          height: 73, // Match login.dart height
+          padding: const EdgeInsets.symmetric(horizontal: 20), // Match login.dart padding
+          transform: _isHovered
+              ? (Matrix4.identity()..scale(1.03))
+              : Matrix4.identity(),
+          transformAlignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: currentBackgroundColor,
+            borderRadius: BorderRadius.circular(15), // Match login.dart border radius
+            border: currentBorder,
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Center(
+            child: widget.isLoading
+                ? CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _isHovered ? Colors.white : Colors.black,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.text,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14, // Match login.dart font size
+                          fontWeight: FontWeight.w600, // Match login.dart font weight
+                          color: currentTextColor,
+                        ),
+                      ),
+                      if (widget.imageAsset != null)
+                        Image.asset(
+                          widget.imageAsset!,
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.cover,
+                        ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _RoleButton extends StatefulWidget {
   final String text;
   final VoidCallback onTap;
+  final bool isLoading;
 
   const _RoleButton({
     required this.text,
     required this.onTap,
+    this.isLoading = false,
   });
 
   @override
@@ -251,16 +464,15 @@ class _RoleButtonState extends State<_RoleButton> {
     final Color currentBackgroundColor =
         _isHovered ? const Color(0xFF1A3D63) : const Color(0xFFF0F0F0);
     final Color currentTextColor = _isHovered ? Colors.white : Colors.black;
-    final Border? currentBorder = _isHovered
-        ? null
-        : Border.all(color: Colors.black, width: 1.5);
+    final Border? currentBorder =
+        _isHovered ? null : Border.all(color: Colors.black, width: 1.5);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: widget.onTap,
+        onTap: widget.isLoading ? null : widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
@@ -285,14 +497,20 @@ class _RoleButtonState extends State<_RoleButton> {
                 : [],
           ),
           child: Center(
-            child: Text(
-              widget.text,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: currentTextColor,
-              ),
-            ),
+            child: widget.isLoading
+                ? CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _isHovered ? Colors.white : Colors.black,
+                    ),
+                  )
+                : Text(
+                    widget.text,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: currentTextColor,
+                    ),
+                  ),
           ),
         ),
       ),

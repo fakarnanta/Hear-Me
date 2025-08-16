@@ -21,8 +21,8 @@
   <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="hilmi">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -31,8 +31,28 @@
 
   <title>hilmi</title>
   <link rel="manifest" href="manifest.json">
-  <script src="https://apis.google.com/js/platform.js" async defer></script>
-  <meta name="google-signin-client_id" content="YOUR_CLIENT_ID.apps.googleusercontent.com">
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
+  </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+  
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDed1dX8F2TpTG3NbLugoTdJAEfoZ9f2Bo",
+        authDomain: "hear-me-4ea80.firebaseapp.com",
+        projectId: "hear-me-4ea80",
+        storageBucket: "hear-me-4ea80.firebasestorage.app",
+        messagingSenderId: "591091586203",
+        appId: "1:591091586203:web:880d3fcbbdcce39e3de23e",
+        measurementId: "G-5WHWKBHPXZ"
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

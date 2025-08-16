@@ -26,12 +26,10 @@ class _TranscriptionPageState extends State<TranscriptionPage> {
     _configureStreamListener();
   }
 
-  // Meminta izin mikrofon
   Future<void> _requestMicrophonePermission() async {
     await Permission.microphone.request();
   }
 
-  // Mengatur listener untuk menerima data transkripsi dari native
   void _configureStreamListener() {
     _eventSubscription = eventChannel.receiveBroadcastStream().listen((dynamic event) {
       setState(() {
@@ -75,7 +73,6 @@ class _TranscriptionPageState extends State<TranscriptionPage> {
   @override
   void dispose() {
     _eventSubscription?.cancel();
-    // Pastikan proses native juga berhenti saat halaman ditutup
     if (_isListening) {
       methodChannel.invokeMethod('stopListening');
     }

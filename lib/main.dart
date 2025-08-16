@@ -1,11 +1,21 @@
 import 'dart:io';
 
+import 'package:bitsdojo_window/bitsdojo_window.dart'
+    show
+        doWhenWindowReady,
+        appWindow,
+        MoveWindow,
+        WindowButtonColors,
+        MinimizeWindowButton,
+        MaximizeWindowButton,
+        CloseWindowButton;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hear_me/constant.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hear_me/gemini_test.dart';
+import 'package:hear_me/homepage_windows.dart';
 import 'package:hear_me/login.dart';
 import 'package:hear_me/onboarding_page_windows.dart';
 import 'package:hear_me/onboarding_page.dart';
@@ -24,13 +34,24 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(  MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (context) => OnboardingProvider()),
-    ],
-    child: const MyApp(),
-  ),
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => OnboardingProvider()),
+      ],
+      child: const MyApp(),
+    ),
   );
+  if (Platform.isWindows) {
+    doWhenWindowReady(() {
+      const initialSize = Size(1280, 720);
+      appWindow.minSize = initialSize;
+      appWindow.size = initialSize;
+      appWindow.alignment = Alignment.center;
+      appWindow.title = "HearMe";
+      appWindow.show();
+    });
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -43,41 +64,90 @@ class MyApp extends StatelessWidget {
       title: 'Hear Me',
       initialRoute: '/',
       onGenerateRoute: (settings) {
+        Widget pageContent;
+
         switch (settings.name) {
           case '/':
-            return MaterialPageRoute(
-              builder: (_) => Platform.isWindows
-                  ? const OnboardingPageWindows()
-                  : const GetStarted(), 
-            );
-
-          case '/new-onboarding':
-            if (Platform.isWindows) {
-              return MaterialPageRoute(builder: (_) => const OnboardingPageWindows());
-            }
-            return MaterialPageRoute(builder: (_) => const GetStarted());
-
+            pageContent = Platform.isWindows
+                ? const OnboardingPageWindows()
+                : const GetStarted();
+            break;
+          case '/home-mahasiswa':
+            pageContent = const HomepagaWindows();
+            break;
           case '/get-started':
-            return MaterialPageRoute(builder: (_) => const GetStarted());
-
+            pageContent = const GetStarted();
+            break;
           case '/gemini':
-            // Pastikan GeminiClientScreen sudah didefinisikan
-            return MaterialPageRoute(builder: (_) => GeminiClientScreen());
-
+            pageContent = GeminiClientScreen();
+            break;
           case '/home':
-            return MaterialPageRoute(builder: (_) => const HomePage());
-
+            pageContent = HomePage();
+            break;
           case '/stt':
-            return MaterialPageRoute(builder: (_) => const TranscriptionPage());
-
-          // Default case jika rute tidak ditemukan
+            pageContent = const TranscriptionPage();
+            break;
           default:
-            return MaterialPageRoute(builder: (_) => const GetStarted());
+            pageContent = const GetStarted();
         }
+
+     
+          return MaterialPageRoute(builder: (_) => pageContent);
       },
     );
   }
 }
+
+class AppShell extends StatelessWidget {
+  final Widget child;
+  const AppShell({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          const CustomTitleBar(),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+final buttonColors = WindowButtonColors(
+    iconNormal: Colors.black,
+    mouseOver: Colors.black.withOpacity(0.1),
+    mouseDown: Colors.black.withOpacity(0.2),
+    iconMouseOver: Colors.black,
+    iconMouseDown: Colors.black);
+
+final closeButtonColors = WindowButtonColors(
+    mouseOver: const Color(0xFFD32F2F),
+    mouseDown: const Color(0xFFB71C1C),
+    iconNormal: Colors.black,
+    iconMouseOver: Colors.black);
+
+class CustomTitleBar extends StatelessWidget {
+  const CustomTitleBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 28,
+      color: const Color(0xFFCBE4FF),
+      child: Row(
+        children: [
+          Expanded(child: MoveWindow()),
+          MinimizeWindowButton(colors: buttonColors),
+          MaximizeWindowButton(colors: buttonColors),
+          CloseWindowButton(colors: closeButtonColors),
+        ],
+      ),
+    );
+  }
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -97,8 +167,6 @@ class _HomePageState extends State<HomePage> {
         _user = user;
       });
     }
-
-    
   }
 
   @override
@@ -114,19 +182,20 @@ class _HomePageState extends State<HomePage> {
             children: [
               RichText(
                 text: TextSpan(
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                ),
-                children: [
-                  TextSpan(text: 'Selamat\n', style: headerStyle),
-                  TextSpan(text: 'Pagi, ', style: headerStyle),
-                  TextSpan(
-                    text: '${_user?.displayName?.split(' ').first ?? 'Pengguna'}!',
-                    style: headerStyle.copyWith(color: primaryColor),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
                   ),
-                ],
+                  children: [
+                    TextSpan(text: 'Selamat\n', style: headerStyle),
+                    TextSpan(text: 'Pagi, ', style: headerStyle),
+                    TextSpan(
+                      text:
+                          '${_user?.displayName?.split(' ').first ?? 'Pengguna'}!',
+                      style: headerStyle.copyWith(color: primaryColor),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 35),
@@ -135,7 +204,8 @@ class _HomePageState extends State<HomePage> {
                   Container(
                     width: MediaQuery.of(context).size.width,
                     height: 180,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 25),
                     decoration: BoxDecoration(
                       color: const Color(0XFF1C1C1C),
                       borderRadius: BorderRadius.circular(20),
@@ -192,58 +262,63 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Positioned(
-                    right: 5,
-                    bottom : 0,
-                    child: Image.asset(
-                      'assets/current_session.png',
-                      width: 90,
-                      height: 90,
-                      fit: BoxFit.cover,
-                    )
-                  )
+                      right: 5,
+                      bottom: 0,
+                      child: Image.asset(
+                        'assets/current_session.png',
+                        width: 90,
+                        height: 90,
+                        fit: BoxFit.cover,
+                      ))
                 ],
               ),
               const SizedBox(height: 20),
-              Text('Kelas yang akan datang', style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              )),
+              Text('Kelas yang akan datang',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  )),
               const SizedBox(height: 20),
               UpcomingClassesCarousel(
-                key: UniqueKey(), // Gunakan UniqueKey untuk memaksa rebuild
+                key: UniqueKey(),
               ),
-              SizedBox(height: 20,),
+              SizedBox(
+                height: 20,
+              ),
               Text('Statistik Pembelajaran',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  
-                  color: Colors.black,
-                )),
-                SizedBox(height: 20,),
-                StatistikPembelajaran(),
-                ElevatedButton(
-                  onPressed: () {
-                
-                    Navigator.pushNamed(context, '/get-started');
-                  },
-                 child: Container(
-                    width: MediaQuery.sizeOf(context).width,
-                    height: 73,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0XFFCBE4FF),
-                      border: Border.all(color: Colors.black, width: 1),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text('Sign Out', style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  )),
+              SizedBox(
+                height: 20,
+              ),
+              StatistikPembelajaran(),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/get-started');
+                },
+                child: Container(
+                  width: MediaQuery.sizeOf(context).width,
+                  height: 73,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0XFFCBE4FF),
+                    border: Border.all(color: Colors.black, width: 1),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Text(
+                    'Sign Out',
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
-                    ),),
+                    ),
                   ),
-                 ),
+                ),
+              ),
             ],
           ),
         ),
@@ -265,7 +340,6 @@ class UpcomingClass {
     required this.time,
   });
 }
-
 
 class UpcomingClassesCarousel extends StatelessWidget {
   UpcomingClassesCarousel({super.key});
@@ -297,14 +371,15 @@ class UpcomingClassesCarousel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 133, 
+          height: 133,
           child: ListView.builder(
-            scrollDirection: Axis.horizontal, 
+            scrollDirection: Axis.horizontal,
             itemCount: upcomingClasses.length,
             itemBuilder: (context, index) {
               final aClass = upcomingClasses[index];
               return Padding(
-                padding: EdgeInsets.only(right: index == upcomingClasses.length - 1 ? 0 : 16),
+                padding: EdgeInsets.only(
+                    right: index == upcomingClasses.length - 1 ? 0 : 16),
                 child: ClassCard(aClass: aClass),
               );
             },
@@ -329,11 +404,11 @@ class ClassCard extends StatelessWidget {
       width: 280, // Lebar setiap kartu
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFCBE4FF), 
+        color: const Color(0xFFCBE4FF),
         borderRadius: BorderRadius.circular(20.0),
         border: Border.all(
-          color: Colors.black, 
-          width: 1.0, 
+          color: Colors.black,
+          width: 1.0,
         ),
       ),
       child: Column(
@@ -365,7 +440,7 @@ class ClassCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 3),
-           Text(
+          Text(
             aClass.time,
             style: GoogleFonts.plusJakartaSans(
               color: Colors.grey[800],
@@ -404,22 +479,22 @@ class _StatistikPembelajaranState extends State<StatistikPembelajaran> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Total waktu belajar',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                )),
-                Container(
-                  width: 99,
-                  height: 34,
-                  margin: const EdgeInsets.only(left: 10, right: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black, width: 1),
-                  ),
-                )
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  )),
+              Container(
+                width: 99,
+                height: 34,
+                margin: const EdgeInsets.only(left: 10, right: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+              )
             ],
           )
         ],
