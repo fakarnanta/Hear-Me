@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hear_me/constant.dart';
-import 'package:hear_me/login.dart';
+import 'package:hear_me/app/mobile/screen/login.dart';
 import 'package:provider/provider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'onboarding_provider.dart';
+import '../provider/onboarding_provider.dart';
 
 class OnboardingScreen extends StatelessWidget {
   @override

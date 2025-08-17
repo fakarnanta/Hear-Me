@@ -121,11 +121,9 @@ class _LoginButtonState extends State<LoginButton> {
           ),
         ),
         const SizedBox(height: 10),
-
-        // Hanya tampilkan tombol Google Login jika platformnya didukung
         if (isDesktopOrWeb)
           GestureDetector(
-            onTap: _isSigningIn ? null : _signInWithGoogle, // Panggil fungsi login
+            onTap: _isSigningIn ? null : _signInWithGoogle, 
             child: Container(
               width: MediaQuery.of(context).size.width,
               height: 73,
