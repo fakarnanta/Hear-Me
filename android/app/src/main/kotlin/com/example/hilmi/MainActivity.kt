@@ -1,6 +1,6 @@
 package com.example.hilmi
 
-// Import yang dibutuhkan untuk Flutter dan Azure SDK
+
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine

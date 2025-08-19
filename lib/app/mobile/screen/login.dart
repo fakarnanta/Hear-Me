@@ -1,10 +1,52 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb; 
-import 'dart:io' show Platform; 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hear_me/constant.dart';
+import 'package:line_icons/line_icons.dart';
+
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  // We no longer need to configure GoogleSignIn here
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      // 1. Use .authenticate() as per your reference code.
+      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+
+      if (googleUser == null) {
+        // User cancelled the sign-in
+        return null;
+      }
+
+      // 2. Obtain the auth details from the request.
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // 3. Create a new credential for Firebase.
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.idToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // 4. Sign in to Firebase.
+      return await _auth.signInWithCredential(credential);
+    } catch (e) {
+      print("Error during Google authentication: $e");
+      return null;
+    }
+  }
+
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+    await _auth.signOut();
+  }
+
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+} 
 
 class GetStarted extends StatelessWidget {
   const GetStarted({super.key});
@@ -14,17 +56,14 @@ class GetStarted extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(40),
+          padding: EdgeInsets.all(40),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Mulai Gunakan Aplikasi Ini!',
-                style: headerStyle,
-              ),
-              const SizedBox(height: 40),
-              const LoginButton(),
+              Text('Mulai Gunakan Aplikasi Ini!', style: headerStyle,),
+              SizedBox(height: 40),
+              LoginButton(),
             ],
           ),
         ),
@@ -43,53 +82,11 @@ class LoginButton extends StatefulWidget {
 class _LoginButtonState extends State<LoginButton> {
   bool _isSigningIn = false;
 
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isSigningIn = true;
-    });
-
-    UserCredential? userCredential;
-
-    try {
-      GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'auth/popup-closed-by-user') {
-        print('Jendela login ditutup oleh pengguna.');
-      } else {
-        print('Login gagal: ${e.message}');
-      }
-    } catch (e) {
-      print('Terjadi error tak terduga: $e');
-    } finally {
-      setState(() {
-        _isSigningIn = false;
-      });
-    }
-
-    if (userCredential != null) {
-      if (!mounted) return;
-      Navigator.pushNamed(context, '/home', arguments: userCredential.user);
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login dengan Google gagal atau dibatalkan.'),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    bool isDesktopOrWeb = !Platform.isIOS && !Platform.isAndroid;
-    if (kIsWeb) {
-      isDesktopOrWeb = true;
-    }
-
     return Column(
       children: [
-        GestureDetector(
+         GestureDetector(
           onTap: () {
             Navigator.pushNamed(context, '/tes');
           },
@@ -106,61 +103,79 @@ class _LoginButtonState extends State<LoginButton> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  'Login dengan Akun UM',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                ),
-                Image.asset('assets/Lambang-UM.png',
-                    width: 30, height: 30, fit: BoxFit.cover),
+                Text('Login dengan Email', style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),),
+                 Icon(
+                  LineIcons.envelopeAlt,
+                  color: Colors.black,
+                  size: 30,
+                )
               ],
             ),
           ),
         ),
         const SizedBox(height: 10),
-        if (isDesktopOrWeb)
-          GestureDetector(
-            onTap: _isSigningIn ? null : _signInWithGoogle, 
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              height: 73,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: const Color(0XFFCBE4FF),
-                border: Border.all(color: Colors.black, width: 1),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Center(
-                child: _isSigningIn
-                    ? const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Login dengan Google',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                          Image.asset(
-                            'assets/google_new.png',
-                            width: 30,
-                            height: 30,
-                            fit: BoxFit.cover,
-                          ),
-                        ],
-                      ),
-              ),
+        GestureDetector(
+          onTap: () async {
+            setState(() {
+              _isSigningIn = true;
+            });
+
+            AuthService authService = AuthService();
+            UserCredential? userCredential = await authService.signInWithGoogle();
+
+            setState(() {
+              _isSigningIn = false;
+            });
+
+            if (userCredential != null) {
+              Navigator.pushNamed(context, '/home', arguments: userCredential.user);
+            } else {
+              // Menampilkan pesan error atau notifikasi jika login gagal
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Login dengan Google gagal atau dibatalkan.'),
+                ),
+              );
+            }
+          },
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            height: 73,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: const Color(0XFFCBE4FF),
+              border: Border.all(color: Colors.black, width: 1),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Center(
+              child: _isSigningIn
+                  ? const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text('Login dengan Google', style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),),
+                        Image.asset(
+                          'assets/google_new.png',
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.cover,
+                        ),
+                      ],
+                    ),
             ),
           ),
+        ),   
       ],
     );
   }

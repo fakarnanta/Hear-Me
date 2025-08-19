@@ -12,6 +12,7 @@ import 'package:bitsdojo_window/bitsdojo_window.dart'
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hear_me/constant.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hear_me/feature/gemini_test.dart';
@@ -34,6 +35,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await initializeGoogleSignIn(); 
   runApp(
     MultiProvider(
       providers: [
@@ -54,6 +56,17 @@ void main() async {
   }
 }
 
+Future<void> initializeGoogleSignIn() async {
+  try {
+    await GoogleSignIn.instance.initialize(
+      serverClientId: "591091586203-km1a7uulr152q2aic5n8vdhlg6hnm88m.apps.googleusercontent.com",
+    );
+  } catch (e) {
+    print("Error initializing Google Sign In: $e");
+  }
+}
+
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -70,7 +83,7 @@ class MyApp extends StatelessWidget {
           case '/':
             pageContent = Platform.isWindows
                 ? const OnboardingPageWindows()
-                : const GetStarted();
+                : OnboardingScreen();
             break;
           case '/home-mahasiswa':
             pageContent = const HomepagaWindows();
@@ -159,14 +172,9 @@ class _HomePageState extends State<HomePage> {
   User? _user;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final user = ModalRoute.of(context)?.settings.arguments as User?;
-    if (user != null) {
-      setState(() {
-        _user = user;
-      });
-    }
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser;
   }
 
   @override
@@ -298,7 +306,7 @@ class _HomePageState extends State<HomePage> {
               StatistikPembelajaran(),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/get-started');
+                  Navigator.pushNamed(context, '/stt');
                 },
                 child: Container(
                   width: MediaQuery.sizeOf(context).width,

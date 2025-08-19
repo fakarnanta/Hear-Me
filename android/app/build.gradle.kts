@@ -7,6 +7,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 // Function to read properties from local.properties file
@@ -35,7 +36,6 @@ android {
 
       externalNativeBuild {
         cmake {
-            // Arahkan ke file CMakeLists.txt Anda
             path = file("src/main/cpp/CMakeLists.txt")
             version = "4.0.3"
         }
@@ -48,7 +48,6 @@ android {
     defaultConfig {
         applicationId = "com.example.hear_me"
         minSdk = 24
-        // These lines will now fail gracefully if a property is missing
         targetSdk = getLocalProperty("flutter.targetSdkVersion", project).toIntOrNull() ?: 35
         versionCode = getLocalProperty("flutter.versionCode", project).toIntOrNull() ?: 1
         versionName = getLocalProperty("flutter.versionName", project).takeIf { it.isNotEmpty() } ?: "1.0"
@@ -70,4 +69,11 @@ dependencies {
     // MediaPipe Vision
     implementation("com.google.mediapipe:tasks-vision:0.10.14")
     implementation("com.microsoft.cognitiveservices.speech:client-sdk:1.38.0")
+    // Tambahkan Firebase BOM
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+
+// Sekarang, tambahkan dependensi Firebase lain TANPA versi
+// Contoh:
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-analytics")
 }
