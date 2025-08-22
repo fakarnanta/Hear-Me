@@ -39,59 +39,56 @@ class MainActivity: FlutterActivity() {
         }
     }
     
-    // Fungsi untuk memulai proses mendengarkan
     private fun startListening() {
-        // LOG: Konfirmasi fungsi startListening dipanggil
         Log.i(TAG, "startListening() called.")
         
         Executors.newSingleThreadExecutor().execute {
             try {
-                // LOG: Memulai proses di thread terpisah
                 Log.d(TAG, "Executing transcription logic on a background thread.")
                 
                 val azureKey = getAzureKey()
                 val azureRegion = getAzureRegion()
-                // LOG: Kredensial berhasil diambil dari C++
                 Log.i(TAG, "Credentials retrieved successfully. Region: $azureRegion")
-
+    
                 speechConfig = SpeechConfig.fromSubscription(azureKey, azureRegion)
                 speechConfig?.speechRecognitionLanguage = "id-ID"
-                // LOG: Konfigurasi SpeechConfig berhasil dibuat
                 Log.i(TAG, "SpeechConfig created for language 'id-ID'.")
-
+    
                 speechRecognizer = SpeechRecognizer(speechConfig)
-                // LOG: SpeechRecognizer berhasil diinisialisasi
                 Log.i(TAG, "SpeechRecognizer initialized.")
-
-                // Tambahkan event listener untuk hasil
+    
                 speechRecognizer?.recognizing?.addEventListener { _, e ->
-                    // LOG: Hasil parsial diterima
                     Log.d(TAG, "Recognizing: ${e.result.text}")
-                    eventSink?.success(e.result.text)
+                    runOnUiThread {
+                        eventSink?.success(e.result.text)
+                    }
                 }
                 
                 speechRecognizer?.recognized?.addEventListener { _, e ->
                     if (e.result.reason == ResultReason.RecognizedSpeech) {
-                        // LOG: Hasil final diterima
                         Log.i(TAG, "Recognized: ${e.result.text}")
-                        eventSink?.success(e.result.text)
+                        // FIX: Jalankan di Main Thread
+                        runOnUiThread {
+                            eventSink?.success(e.result.text)
+                        }
                     }
                 }
-
+    
                 speechRecognizer?.canceled?.addEventListener { _, e ->
-                    // LOG: Proses dibatalkan atau error
                     Log.e(TAG, "CANCELED: Reason=${e.reason}, Details=${e.errorDetails}")
-                    eventSink?.error("CANCELED", "Speech recognition canceled: ${e.reason}", e.errorDetails)
+                    runOnUiThread {
+                        eventSink?.error("CANCELED", "Speech recognition canceled: ${e.reason}", e.errorDetails)
+                    }
                 }
                 
                 speechRecognizer?.startContinuousRecognitionAsync()?.get()
-                // LOG: Proses pengenalan suara berhasil dimulai
                 Log.i(TAG, "✅ Continuous recognition started successfully.")
-
+    
             } catch (e: Exception) {
-                // LOG: Terjadi exception saat inisialisasi
                 Log.e(TAG, "ERROR during startListening setup: ${e.message}", e)
-                eventSink?.error("ERROR", "Initialization failed: ${e.message}", null)
+                runOnUiThread {
+                    eventSink?.error("ERROR", "Initialization failed: ${e.message}", null)
+                }
             }
         }
     }

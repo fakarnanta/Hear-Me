@@ -2,6 +2,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:hear_me/constant.dart';
+import 'package:line_icons/line_icon.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class TranscriptionPage extends StatefulWidget {
@@ -43,7 +46,6 @@ class _TranscriptionPageState extends State<TranscriptionPage> {
     });
   }
   
-  // Fungsi untuk memulai atau menghentikan proses
   Future<void> _toggleListening() async {
     if (_isListening) {
       try {
@@ -82,40 +84,83 @@ class _TranscriptionPageState extends State<TranscriptionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Real-time Transcription'),
-        backgroundColor: _isListening ? Colors.redAccent : Colors.blueAccent,
-      ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Text(
-                'Hasil Transkripsi:',
-                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+        padding: const EdgeInsets.symmetric(vertical : 37, horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const SizedBox(height: 10),
+            Container(
+              padding: EdgeInsets.all(5),
+              width: MediaQuery.of(context).size.width * 1,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(15),
               ),
-              const SizedBox(height: 16.0),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8.0),
+              child: Row(
+                children: [
+                  IconButton(onPressed: () {}, icon: LineIcon.arrowLeft(), color: Colors.white),
+                  SizedBox(width: 5),
+                  Text(
+                    'Judul Sesi',
+                    style: GoogleFonts.plusJakartaSans( 
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    )
                   ),
-                  child: SingleChildScrollView(
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: MediaQuery.of(context).size.width * 1,
+              height: 340,
+              padding: const EdgeInsets.only(left: 25, right: 25, top: 20, bottom: 30),
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 42,
+                    width: 110,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFD9D9D9),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Transkrip',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: primaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 15,),
+                  SingleChildScrollView(
                     reverse: true,
                     child: Text(
                       _transcribedText,
-                      style: const TextStyle(fontSize: 18.0),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

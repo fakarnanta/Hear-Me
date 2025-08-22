@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hear_me/app/mobile/screen/transcription_page.dart';
+import 'package:hear_me/app/windows/screen/transcription_page_windows.dart';
 import 'package:hear_me/constant.dart';
 import 'package:hear_me/main.dart';
 import 'package:line_icons/line_icon.dart';
@@ -154,80 +156,85 @@ class _MiddleHomepageState extends State<MiddleHomepage> {
           ),
           ),
           SizedBox(height: 40,),
-            Stack(
-                children: [
-                  Container(
-                    width: 400,
-                    height: 180,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 25),
-                    decoration: BoxDecoration(
-                      color: const Color(0XFF1C1C1C),
-                      borderRadius: BorderRadius.circular(20),
+            GestureDetector(
+              onTap: () {
+              Navigator.pushNamed(context, '/stt-windows');
+              },
+              child: Stack(
+              children: [
+                Container(
+                width: 400,
+                height: 180,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 25),
+                decoration: BoxDecoration(
+                  color: const Color(0XFF1C1C1C),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                  Row(
+                    children: [
+                    Container(
+                      width: 15,
+                      height: 15,
+                      decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF5AF571),
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 15,
-                              height: 15,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFF5AF571),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text('Sesi Saat Ini',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                )),
-                          ],
-                        ),
-                        const SizedBox(height: 30),
-                        Text(
-                          'Binary Search',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Struktur Data - NMAT230111',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: Colors.white70,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '35 students',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(width: 10),
+                    Text('Sesi Saat Ini',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      )),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  Text(
+                    'Binary Search',
+                    style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                     ),
                   ),
-                  Positioned(
-                      right: 5,
-                      bottom: 0,
-                      child: Image.asset(
-                        'assets/current_session.png',
-                        width: 90,
-                        height: 90,
-                        fit: BoxFit.cover,
-                      ))
-                ],
+                  const SizedBox(height: 10),
+                  Text(
+                    'Struktur Data - NMAT230111',
+                    style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '35 students',
+                    style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: Colors.white70,
+                    ),
+                  ),
+                  ],
+                ),
+                ),
+                Positioned(
+                  right: 5,
+                  bottom: 0,
+                  child: Image.asset(
+                  'assets/current_session.png',
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.cover,
+                  ))
+              ],
               ),
-                  const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 20),
               Text('Kelas yang akan datang',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,

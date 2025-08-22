@@ -13,6 +13,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:hear_me/app/windows/screen/transcription_page_windows.dart';
 import 'package:hear_me/constant.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hear_me/feature/gemini_test.dart';
@@ -23,6 +24,7 @@ import 'package:hear_me/app/mobile/screen/onboarding_page.dart';
 import 'package:hear_me/app/mobile/provider/onboarding_provider.dart';
 import 'package:hear_me/feature/realtime_bisindo.dart';
 import 'package:hear_me/app/mobile/screen/transcription_page.dart';
+import 'package:hear_me/services/azure_stt_bridge.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'package:camera/camera.dart';
@@ -40,6 +42,10 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => OnboardingProvider()),
+        Provider<AzureSttBridgeService>(
+          create: (_) => AzureSttBridgeService(),
+          dispose: (_, service) => service.stopBridgeExe(),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -99,6 +105,9 @@ class MyApp extends StatelessWidget {
             break;
           case '/stt':
             pageContent = const TranscriptionPage();
+            break;
+          case '/stt-windows':
+            pageContent = TranscriptionPageWindows();
             break;
           default:
             pageContent = const GetStarted();
