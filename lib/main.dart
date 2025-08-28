@@ -22,9 +22,13 @@ import 'package:hear_me/app/mobile/screen/login.dart';
 import 'package:hear_me/app/windows/screen/onboarding_page_windows.dart';
 import 'package:hear_me/app/mobile/screen/onboarding_page.dart';
 import 'package:hear_me/app/mobile/provider/onboarding_provider.dart';
+import 'package:hear_me/feature/livestream/livestream_page_mobile.dart';
 import 'package:hear_me/feature/realtime_bisindo.dart';
 import 'package:hear_me/app/mobile/screen/transcription_page.dart';
 import 'package:hear_me/services/azure_stt_bridge.dart';
+import 'package:hear_me/services/gemini_summary_service.dart';
+import 'package:hear_me/services/livestream_service.dart';
+import 'package:hear_me/services/whiteboard_stream_service.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'package:camera/camera.dart';
@@ -40,12 +44,11 @@ void main() async {
   await initializeGoogleSignIn(); 
   runApp(
     MultiProvider(
-      providers: [
+           providers: [
         ChangeNotifierProvider(create: (context) => OnboardingProvider()),
-        Provider<AzureSttBridgeService>(
-          create: (_) => AzureSttBridgeService(),
-          dispose: (_, service) => service.stopBridgeExe(),
-        ),
+        Provider(create: (context) => AzureSttBridgeService()),
+        Provider(create: (context) => LivestreamService()),
+        Provider(create: (context) => GeminiSummaryService()),
       ],
       child: const MyApp(),
     ),
@@ -105,6 +108,9 @@ class MyApp extends StatelessWidget {
             break;
           case '/stt':
             pageContent = const TranscriptionPage();
+            break;
+          case '/stt-whiteboard':
+            pageContent = const LiveStreamPage();
             break;
           case '/stt-windows':
             pageContent = TranscriptionPageWindows();
@@ -315,7 +321,7 @@ class _HomePageState extends State<HomePage> {
               StatistikPembelajaran(),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/stt');
+                  Navigator.pushNamed(context, '/stt-whiteboard');
                 },
                 child: Container(
                   width: MediaQuery.sizeOf(context).width,
@@ -327,7 +333,7 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Text(
-                    'Sign Out',
+                    'STT WHITEBOARD',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

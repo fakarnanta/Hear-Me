@@ -1,13 +1,29 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:record/record.dart';
 
 class AzureSttBridgeService {
   Process? _proc;
   WebSocket? _ws;
   final _controller = StreamController<Map<String, dynamic>>.broadcast();
+  final _audioRecorder = AudioRecorder();
+  StreamSubscription? _audioStreamSubscription;
+
 
   Stream<Map<String, dynamic>> get stream => _controller.stream;
+
+    void sendWhiteboardData(Map<String, dynamic> data) {
+    if (_ws != null && _ws!.readyState == WebSocket.open) {
+      try {
+        final jsonString = json.encode(data);
+        print('[SEND_WHITEBOARD] $jsonString'); // Log untuk debugging
+        _ws!.add(jsonString);
+      } catch (e) {
+        print('Error sending whiteboard data: $e');
+      }
+    }
+  }
 
   Future<void> startBridgeExe() async {
     // jalankan EXE bridge
@@ -34,7 +50,7 @@ class AzureSttBridgeService {
     // sedikit delay memberi waktu HttpListener start
     await Future.delayed(const Duration(milliseconds: 1500));
 
-    _ws = await WebSocket.connect('ws://127.0.0.1:5005/stt');
+    _ws = await WebSocket.connect('ws://127.0.0.1:8080');
 
     _ws!.listen((raw) {
       try {
@@ -67,11 +83,32 @@ class AzureSttBridgeService {
     if (language != null) {
       _ws!.add(json.encode({'cmd': 'LANG', 'value': language}));
     }
-    _ws!.add('START');
+    
+    final stream = await _audioRecorder.startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1));
+    _audioStreamSubscription = stream.listen((data) {
+      _ws?.add(data);
+    });
+
+    _controller.add({'type': 'info', 'message': 'started'});
   }
 
-  Future<void> stopListening() async {
-    if (_ws == null) return;
-    _ws!.add('STOP');
+Future<void> stopListening() async {
+  if (_ws == null) return;
+  
+  try {
+    print("Mencoba menghentikan audio recorder...");
+    await _audioRecorder.stop();
+    await _audioStreamSubscription?.cancel();
+    _audioStreamSubscription = null; // Bersihkan subscription setelah dibatalkan
+    print("Audio recorder berhasil dihentikan.");
+  } catch (e) {
+    print("Error saat menghentikan audio recorder: $e");
+    // Kirim pesan error ke UI jika diperlukan
+    _controller.add({'type': 'error', 'message': 'Gagal berhenti: $e'});
+  } finally {
+    // Kirim pesan konfirmasi 'stopped' ke UI di dalam blok finally.
+    // Ini menjamin _isListening akan di-set ke false di UI.
+    _controller.add({'type': 'info', 'message': 'stopped'});
   }
+}
 }
