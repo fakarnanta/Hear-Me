@@ -1,24 +1,27 @@
 import 'dart:async';
+import 'dart:ui' as ui;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hear_me/app/windows/screen/summary_page.dart';
+import 'package:hear_me/services/azure_stt_bridge.dart';
+import 'package:hear_me/services/gemini_summary_service.dart';
 import 'package:hear_me/services/livestream_service.dart';
+import 'package:hear_me/services/whiteboard_stream_service.dart';
 import 'package:line_icons/line_icon.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:vector_math/vector_math_64.dart' as vector;
-import 'package:hear_me/services/azure_stt_bridge.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:rxdart/streams.dart';
+import 'package:vector_math/vector_math_64.dart' as vector;
+import 'package:hear_me/constant.dart';
 
-import 'dart:ui' as ui;
-import 'package:flutter/rendering.dart';
-import 'package:hear_me/services/gemini_summary_service.dart';
-import 'package:hear_me/app/windows/screen/summary_page.dart';
-
-import 'package:hear_me/services/whiteboard_stream_service.dart';
-
-// --- Widget Utama ---
 class TranscriptionPageWindows extends StatefulWidget {
-  const TranscriptionPageWindows({super.key});
+  final String? sessionId;
+
+  const TranscriptionPageWindows({super.key, this.sessionId});
 
   @override
   State<TranscriptionPageWindows> createState() =>
@@ -26,54 +29,41 @@ class TranscriptionPageWindows extends StatefulWidget {
 }
 
 class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
-  // --- State ---
+  // --- Services & Controllers ---
   late final AzureSttBridgeService _sttBridge;
   late final LivestreamService _livestreamService;
+  final GeminiSummaryService _geminiSummaryService = GeminiSummaryService(apiKey: dotenv.env['GEMINI_API_KEY']!);
+
   StreamSubscription? _bridgeSubscription;
-  bool _isBridgeInitialized = false;
-  final GlobalKey _whiteboardKey = GlobalKey();
-  final GeminiSummaryService _geminiSummaryService = GeminiSummaryService();
-
   final ScrollController _scrollController = ScrollController();
+  final TransformationController _transformationController =
+      TransformationController();
+  final GlobalKey _whiteboardKey = GlobalKey();
 
+
+  bool _isBridgeInitialized = false;
   final ValueNotifier<bool> _isTranscriptMinimizedNotifier =
       ValueNotifier<bool>(false);
-
-  // --- Whiteboard features state ---
   final ValueNotifier<Color> _selectedColorNotifier =
       ValueNotifier<Color>(Colors.black);
   final ValueNotifier<bool> _isErasingNotifier = ValueNotifier<bool>(false);
-  double _strokeWidth = 4.0;
-  final TransformationController _transformationController =
-      TransformationController();
-  int _pointerCount = 0;
   final ValueNotifier<bool> _isDrawingModeNotifier = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> _isHandRaised = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> _raisedHandUser = ValueNotifier<String?>(null);
+
+  // --- Drawing State ---
+  final double _strokeWidth = 4.0;
+  int _pointerCount = 0;
 
   @override
   void initState() {
     super.initState();
     _sttBridge = context.read<AzureSttBridgeService>();
     _livestreamService = context.read<LivestreamService>();
+    _livestreamService.currentSessionId = widget.sessionId;
     _initializeBridge();
     _requestMicrophonePermission();
     _listenToBridge();
-  }
-
-  Future<void> _initializeBridge() async {
-    try {
-      await _sttBridge.startBridgeExe();
-      if (mounted) {
-        setState(() {
-          _isBridgeInitialized = true;
-        });
-        _livestreamService
-            .addTranscript('Tekan tombol mikrofon untuk mulai berbicara...');
-      }
-    } catch (e) {
-      if (mounted) {
-        _livestreamService.addTranscript('Error initializing bridge: $e');
-      }
-    }
   }
 
   @override
@@ -88,71 +78,74 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
     _isErasingNotifier.dispose();
     _isDrawingModeNotifier.dispose();
     _isTranscriptMinimizedNotifier.dispose();
+    _isHandRaised.dispose();
     super.dispose();
+  }
+
+  Future<void> _initializeBridge() async {
+    try {
+      await _sttBridge.startBridgeExe();
+      if (mounted) {
+        setState(() {
+          _isBridgeInitialized = true;
+        });
+        _addSystemMessage('Tekan tombol mikrofon untuk mulai berbicara...');
+      }
+    } catch (e) {
+      if (mounted) {
+        _addSystemMessage('Error initializing bridge: $e');
+      }
+    }
   }
 
   Future<void> _requestMicrophonePermission() async {
     await Permission.microphone.request();
   }
 
-// Di dalam file transcription_page_windows.dart
-
   void _listenToBridge() {
-    _bridgeSubscription = _sttBridge.stream.listen((event) {
-      // Cek dulu apakah 'type' ada di dalam event
-      if (event['type'] == null) return;
-
-      final type = event['type'] as String;
-
-      // --- PERBAIKAN DI SINI ---
-      // GANTI: if (type == 'partial' || type == 'final')
-      // MENJADI: if (type == 'transcription')
-      if (type == 'transcription') {
-        // Pastikan payload dan text tidak null untuk menghindari error
-        final payload = event['payload'] as Map<String, dynamic>?;
-        if (payload != null && payload['text'] != null) {
-          final transcript = payload['text'] as String;
-
-          _livestreamService.addTranscript(transcript);
+    _livestreamService.handRaiseStream.listen((userName) {
+      _raisedHandUser.value = userName;
+      // Hide the indicator after 5 seconds
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) {
+          _raisedHandUser.value = null;
         }
+      });
+    });
 
-        // Sisa kode (untuk 'error' dan 'info') sudah benar, tidak perlu diubah.
-      } else if (type == 'error') {
-        // ... (tanpa perubahan)
-      } else if (type == 'info') {
-        // ... (tanpa perubahan)
-      }
+    _bridgeSubscription = _sttBridge.stream.listen((event) {
+      _livestreamService.handleBridgeMessage(event);
     });
   }
-
-// Di dalam file transcription_page_windows.dart
 
   Future<void> _toggleListening() async {
     if (!_isBridgeInitialized) return;
 
-    if (_livestreamService.isListeningNotifier.value) {
-      await _sttBridge.stopListening();
-      _livestreamService.stopListening();
-    } else {
-      var status = await Permission.microphone.status;
-      if (status.isGranted) {
-        try {
-          print("Mencoba memulai listening..."); // Tambahkan log untuk debug
-          await _sttBridge.startListening();
-          _livestreamService.startListening();
-          print("Start listening berhasil dipanggil.");
-        } catch (e) {
-          print("Error saat startListening: $e"); // Cetak error ke console
-          // Tampilkan pesan error di UI agar pengguna tahu
-          _livestreamService.addTranscript('Error memulai mikrofon: $e');
-        }
-        // -----------------------------------------
+    final isCurrentlyListening = _livestreamService.isListeningNotifier.value;
+
+    try {
+      if (isCurrentlyListening) {
+        
+        await _sttBridge.stopListening();
       } else {
-        // Logika jika izin ditolak sudah benar
-        _livestreamService.addTranscript('Izin mikrofon ditolak.');
+        var status = await Permission.microphone.status;
+        if (status.isGranted) {
+          await _sttBridge.startListening();
+        } else {
+          _addSystemMessage('Izin mikrofon ditolak.');
+        }
       }
+    } catch (e) {
+      _addSystemMessage('Error: $e');
     }
   }
+  
+  void _addSystemMessage(String text) {
+    final entry = TranscriptEntry(speakerId: "System", text: text, color: Colors.grey);
+    _livestreamService.addTranscript(entry);
+  }
+
+  // --- Drawing and Whiteboard Methods ---
 
   void _onPointerDown(PointerDownEvent details) {
     if (!_isDrawingModeNotifier.value) return;
@@ -160,8 +153,7 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
     if (_pointerCount == 1) {
       final Matrix4 inverse = Matrix4.inverted(_transformationController.value);
       final vector.Vector3 transformedPosition = inverse.perspectiveTransform(
-          vector.Vector3(
-              details.localPosition.dx, details.localPosition.dy, 0));
+          vector.Vector3(details.localPosition.dx, details.localPosition.dy, 0));
       final offset = Offset(transformedPosition.x, transformedPosition.y);
 
       _livestreamService.onPointerDown(offset, _selectedColorNotifier.value,
@@ -174,8 +166,7 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
     if (_pointerCount == 1) {
       final Matrix4 inverse = Matrix4.inverted(_transformationController.value);
       final vector.Vector3 transformedPosition = inverse.perspectiveTransform(
-          vector.Vector3(
-              details.localPosition.dx, details.localPosition.dy, 0));
+          vector.Vector3(details.localPosition.dx, details.localPosition.dy, 0));
       final offset = Offset(transformedPosition.x, transformedPosition.y);
 
       _livestreamService.onPointerMove(offset);
@@ -190,33 +181,21 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
     }
   }
 
-  void _clearCanvas() {
-    _livestreamService.clear();
-  }
-
-  void _undo() {
-    _livestreamService.undo();
-  }
-
-  void _toggleEraser() {
-    _isErasingNotifier.value = !_isErasingNotifier.value;
-  }
-
+  void _clearCanvas() => _livestreamService.clear();
+  void _undo() => _livestreamService.undo();
+  void _toggleEraser() => _isErasingNotifier.value = !_isErasingNotifier.value;
   void _selectColor(Color color) {
     _selectedColorNotifier.value = color;
     _isErasingNotifier.value = false;
   }
 
-  void _toggleMode() {
-    _isDrawingModeNotifier.value = !_isDrawingModeNotifier.value;
-  }
+  void _toggleMode() =>
+      _isDrawingModeNotifier.value = !_isDrawingModeNotifier.value;
 
-  void _toggleTranscriptView() => _isTranscriptMinimizedNotifier.value =
-      !_isTranscriptMinimizedNotifier.value;
+  void _toggleTranscriptView() =>
+      _isTranscriptMinimizedNotifier.value = !_isTranscriptMinimizedNotifier.value;
 
   Future<void> _generateSummary() async {
-    await Future.delayed(Duration.zero);
-    // Tampilkan dialog loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -224,41 +203,30 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
     );
 
     try {
-      // --- PERBAIKAN 1: Pemeriksaan Konteks Widget yang Aman ---
       final boundaryContext = _whiteboardKey.currentContext;
       if (boundaryContext == null) {
-        // Jika konteks tidak ditemukan, lempar error yang jelas
-        throw Exception(
-            "Gagal menemukan konteks whiteboard. Pastikan whiteboard terlihat di layar.");
+        throw Exception("Whiteboard context not found.");
       }
       final boundary =
           boundaryContext.findRenderObject() as RenderRepaintBoundary;
-      // --------------------------------------------------------
-
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       final ByteData? byteData =
           await image.toByteData(format: ui.ImageByteFormat.png);
 
-      // --- PERBAIKAN 2: Pemeriksaan Data Byte yang Aman ---
       if (byteData == null) {
-        // Jika konversi gambar gagal, lempar error yang jelas
-        throw Exception("Gagal mengubah gambar menjadi data byte.");
+        throw Exception("Failed to convert image to byte data.");
       }
       final Uint8List pngBytes = byteData.buffer.asUint8List();
-      // ----------------------------------------------------
-
       final String transcript =
-          _livestreamService.transcriptsStream.value.join('\n\n');
+          _livestreamService.transcriptsStream.value.map((e) => e.text).join('\n\n');
 
       final String summary =
           await _geminiSummaryService.generateSummary(pngBytes, transcript);
 
       _livestreamService.sendSummary(summary);
 
-      // Tutup dialog loading SEBELUM navigasi
-      if (mounted) Navigator.of(context).pop();
-
       if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => SummaryPage(summaryText: summary),
@@ -266,11 +234,11 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
         );
       }
     } catch (e) {
-      // Tutup dialog loading dan tampilkan pesan error yang lebih informatif
-      if (mounted) Navigator.of(context).pop();
-
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog on error
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        SnackBar(content: Text("Error generating summary: $e")),
       );
     }
   }
@@ -280,19 +248,65 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
+        alignment: Alignment.center, // Align stack children
         children: [
           _buildWhiteboardPanel(),
           _buildSessionHeader(),
-               
           FloatingTranscriptPanel(
-                  livestreamService: _livestreamService,
-                  isTranscriptMinimizedNotifier: _isTranscriptMinimizedNotifier,
-                  isBridgeInitialized: _isBridgeInitialized,
-                  toggleListening: _toggleListening,
-                  toggleTranscriptView: _toggleTranscriptView,
-                  scrollController: _scrollController,
+            livestreamService: _livestreamService,
+            isTranscriptMinimizedNotifier: _isTranscriptMinimizedNotifier,
+            isBridgeInitialized: _isBridgeInitialized,
+            toggleListening: _toggleListening,
+            toggleTranscriptView: _toggleTranscriptView,
+            scrollController: _scrollController,
           ),
           _buildToolbar(),
+          // Hand Raise Indicator
+          ValueListenableBuilder<String?>(
+            valueListenable: _raisedHandUser,
+            builder: (context, userName, child) {
+              return AnimatedPositioned(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+                bottom: 20,
+                right: userName == null ? -300 : 20, 
+                child: AnimatedOpacity(
+                  opacity: userName == null ? 0.0 : 1.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        )
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.front_hand, color: Colors.white, size: 30),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${userName?.split(' ').first ?? 'User'} sedang mengangkat tangan',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -308,27 +322,18 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-            )
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)
           ],
         ),
         child: Column(
           children: [
-            IconButton(
-              icon: Icon(Icons.undo),
-              onPressed: _undo,
-            ),
-            IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: _clearCanvas,
-            ),
+            IconButton(icon: const Icon(Icons.undo), onPressed: _undo),
+            IconButton(icon: const Icon(Icons.delete), onPressed: _clearCanvas),
             ValueListenableBuilder<bool>(
               valueListenable: _isErasingNotifier,
               builder: (context, isErasing, child) {
                 return IconButton(
-                  icon: Icon(Icons.edit),
+                  icon: const Icon(Icons.edit),
                   color: isErasing ? Colors.blue : Colors.black,
                   onPressed: _toggleEraser,
                 );
@@ -343,9 +348,9 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
                 );
               },
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             IconButton(
-              icon: Icon(Icons.summarize),
+              icon: const Icon(Icons.summarize),
               onPressed: _generateSummary,
             ),
             _buildColorPalette(),
@@ -361,65 +366,13 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
       builder: (context, selectedColor, child) {
         return Column(
           children: [
-            GestureDetector(
-              onTap: () => _selectColor(Colors.black),
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  shape: BoxShape.circle,
-                  border: selectedColor == Colors.black
-                      ? Border.all(color: Colors.blue, width: 2)
-                      : null,
-                ),
-              ),
-            ),
-            SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => _selectColor(Colors.red),
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                  border: selectedColor == Colors.red
-                      ? Border.all(color: Colors.blue, width: 2)
-                      : null,
-                ),
-              ),
-            ),
-            SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => _selectColor(Colors.green),
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                  border: selectedColor == Colors.green
-                      ? Border.all(color: Colors.blue, width: 2)
-                      : null,
-                ),
-              ),
-            ),
-            SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => _selectColor(Colors.blue),
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                  border: selectedColor == Colors.blue
-                      ? Border.all(color: Colors.blue, width: 2)
-                      : null,
-                ),
-              ),
-            ),
+            _ColorButton(color: Colors.black, selectedColor: selectedColor, onSelect: _selectColor),
+            const SizedBox(height: 10),
+            _ColorButton(color: Colors.red, selectedColor: selectedColor, onSelect: _selectColor),
+            const SizedBox(height: 10),
+            _ColorButton(color: Colors.green, selectedColor: selectedColor, onSelect: _selectColor),
+            const SizedBox(height: 10),
+            _ColorButton(color: Colors.blue, selectedColor: selectedColor, onSelect: _selectColor),
           ],
         );
       },
@@ -427,79 +380,66 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
   }
 
   Widget _buildSessionHeader() {
-  // BENAR: Widget terluarnya adalah Positioned
-  return Positioned(
-    top: 37,
-    left: 24,
-    child: Container( // Container sekarang ada di dalam Positioned
-      width:  MediaQuery.of(context).size.width * 0.3,
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-          )
-        ],
-      ),
-      child: Row(
-        // ... isi header (tombol panah, teks, dll)
-        children: [
-          IconButton(
-              onPressed: () => Navigator.of(context).pop(), // Aksi kembali
-              icon: LineIcon.arrowLeft(),
-              color: Colors.white),
-          const SizedBox(width: 5),
-          Text(
-            'Judul Sesi',
-            style: GoogleFonts.plusJakartaSans(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+    return Positioned(
+      top: 37,
+      left: 24,
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.3,
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10)
+          ],
+        ),
+        child: Row(
+          children: [
+            IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: LineIcon.arrowLeft(),
+                color: Colors.white),
+            const SizedBox(width: 5),
+            Text(
+              widget.sessionId ?? 'Judul Sesi',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
-// Di dalam file transcription_page_windows.dart
+    );
+  }
 
   Widget _buildWhiteboardPanel() {
-    // Di dalam metode build dari widget whiteboard Anda
     return RepaintBoundary(
+      key: _whiteboardKey,
       child: Listener(
         onPointerDown: _onPointerDown,
         onPointerMove: _onPointerMove,
         onPointerUp: _onPointerUp,
-        // BUNGKUS InteractiveViewer dengan ValueListenableBuilder
         child: ValueListenableBuilder<bool>(
           valueListenable: _isDrawingModeNotifier,
           builder: (context, isDrawingMode, child) {
-            // 'isDrawingMode' adalah nilai terbaru dari notifier
             return InteractiveViewer(
               transformationController: _transformationController,
               minScale: 0.1,
               maxScale: 4.0,
-              // Gunakan nilai terbaru untuk mengontrol pan & zoom
               panEnabled: !isDrawingMode,
               scaleEnabled: !isDrawingMode,
               clipBehavior: Clip.none,
-              // 'child' dari builder ini akan diteruskan ke sini
               child: child!,
             );
           },
-          // LETAKKAN StreamBuilder sebagai 'child' agar tidak ikut di-rebuild
-          // oleh ValueListenableBuilder. Ini adalah optimasi penting!
           child: StreamBuilder<List<DrawingPath>>(
             stream: _livestreamService.pathsStream,
             builder: (context, snapshot) {
-              final paths = snapshot.data ?? [];
               return CustomPaint(
                 size: MediaQuery.of(context).size,
-                painter: DrawingPainter(paths: paths),
+                painter: DrawingPainter(paths: snapshot.data ?? []),
               );
             },
           ),
@@ -507,115 +447,40 @@ class _TranscriptionPageWindowsState extends State<TranscriptionPageWindows> {
       ),
     );
   }
+}
 
-  Widget _buildFloatingTranscriptPanel() {
-    const primaryColor = Color(0xFF4A657D);
+// --- Helper Widgets for UI Composition ---
 
-    return Positioned(
-    top: 110, 
-    left: 20,
-      child: Card(
-        elevation: 12,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: ValueListenableBuilder<bool>(
-          valueListenable: _isTranscriptMinimizedNotifier,
-          builder: (context, isTranscriptMinimized, child) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              width: MediaQuery.of(context).size.width * 0.3,
-              height: isTranscriptMinimized ? 90 : 400,
-              padding: const EdgeInsets.only(
-                  left: 25, right: 25, top: 20, bottom: 30),
-              decoration: BoxDecoration(
-                color: primaryColor,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text('Transkrip',
-                            style: GoogleFonts.plusJakartaSans(
-                                color: primaryColor,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      Row(
-                        children: [
-                          ValueListenableBuilder<bool>(
-                            valueListenable:
-                                _livestreamService.isListeningNotifier,
-                            builder: (context, isListening, child) {
-                              return IconButton(
-                                icon: Icon(
-                                    isListening ? Icons.mic : Icons.mic_off,
-                                    color: Colors.white70),
-                                onPressed: _isBridgeInitialized
-                                    ? _toggleListening
-                                    : null,
-                              );
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(
-                                isTranscriptMinimized
-                                    ? Icons.open_in_full
-                                    : Icons.close_fullscreen,
-                                color: Colors.white70),
-                            onPressed: _toggleTranscriptView,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  if (!isTranscriptMinimized) ...[
-                    const SizedBox(height: 10),
-                    const Divider(color: Colors.white30),
-                    Expanded(
-                      child: StreamBuilder<List<String>>(
-                        stream: _livestreamService.transcriptsStream,
-                        builder: (context, snapshot) {
-                          final transcripts = snapshot.data ?? [];
-                          return ListView.builder(
-                            controller: _scrollController,
-                            itemCount: transcripts.length,
-                            itemBuilder: (context, index) => Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: 8.0, top: 4.0),
-                              child: Text(
-                                transcripts[index],
-                                style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ]
-                ],
-              ),
-            );
-          },
+class _ColorButton extends StatelessWidget {
+  final Color color;
+  final Color selectedColor;
+  final ValueChanged<Color> onSelect;
+
+  const _ColorButton({
+    required this.color,
+    required this.selectedColor,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onSelect(color),
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: color == selectedColor
+              ? Border.all(color: Colors.blue, width: 2)
+              : null,
         ),
       ),
     );
   }
 }
 
-// Ganti seluruh metode _buildFloatingTranscriptPanel() Anda dengan pemanggilan widget baru ini.
-
-// 1. Widget Utama (Stateful/Stateless Sesuai Kebutuhan Induknya)
 class FloatingTranscriptPanel extends StatelessWidget {
   const FloatingTranscriptPanel({
     super.key,
@@ -660,7 +525,6 @@ class FloatingTranscriptPanel extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // WIDGET HEADER (TIDAK AKAN REBUILD SAAT TRANSKRIP UPDATE)
                   _TranscriptHeader(
                     isListeningNotifier: livestreamService.isListeningNotifier,
                     isBridgeInitialized: isBridgeInitialized,
@@ -669,13 +533,11 @@ class FloatingTranscriptPanel extends StatelessWidget {
                     isMinimized: isMinimized,
                     primaryColor: primaryColor,
                   ),
-                  // HANYA TAMPILKAN DAFTAR JIKA TIDAK DIMINIMIZE
                   if (!isMinimized) ...[
                     const SizedBox(height: 10),
                     const Divider(color: Colors.white30),
-                    // WIDGET DAFTAR TRANSKRIP (HANYA INI YANG AKAN REBUILD)
                     _TranscriptList(
-                      transcriptsStream: livestreamService.transcriptsStream,
+                      livestreamService: livestreamService,
                       scrollController: scrollController,
                     ),
                   ],
@@ -689,7 +551,6 @@ class FloatingTranscriptPanel extends StatelessWidget {
   }
 }
 
-// 2. Widget untuk Header Panel (Statis)
 class _TranscriptHeader extends StatelessWidget {
   const _TranscriptHeader({
     required this.isListeningNotifier,
@@ -752,47 +613,89 @@ class _TranscriptHeader extends StatelessWidget {
   }
 }
 
-// 3. Widget untuk Daftar Transkrip (Dinamis dan Terisolasi)
+
 class _TranscriptList extends StatelessWidget {
   const _TranscriptList({
-    required this.transcriptsStream,
+    required this.livestreamService,
     required this.scrollController,
   });
 
-  final Stream<List<String>> transcriptsStream;
+  final LivestreamService livestreamService;
   final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: StreamBuilder<List<String>>(
-        stream: transcriptsStream,
+      // 1. Menggunakan CombineLatestStream untuk mendengarkan dua stream sekaligus
+      child: StreamBuilder<({List<TranscriptEntry> transcripts, TranscriptEntry? partial})>(
+        stream: CombineLatestStream.combine2(
+            livestreamService.transcriptsStream,       // Stream transkrip final
+            livestreamService.partialTranscriptStream, // Stream transkrip parsial
+            (transcripts, partial) => (transcripts: transcripts, partial: partial)),
         builder: (context, snapshot) {
-          final transcripts = snapshot.data ?? [];
-          // Auto-scroll ke bawah saat ada transkrip baru
-          if (scrollController.hasClients) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!snapshot.hasData) {
+            return const SizedBox.shrink();
+          }
+          final finalTranscripts = snapshot.data!.transcripts;
+          final partialEntry = snapshot.data!.partial;
+
+          // 2. Menggabungkan daftar transkrip final dengan entri parsial (jika ada)
+          final allItems = [...finalTranscripts];
+          if (partialEntry != null && partialEntry.text.isNotEmpty) {
+            allItems.add(partialEntry);
+          }
+
+          // Logika untuk auto-scroll ke bawah saat ada konten baru
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (scrollController.hasClients && scrollController.position.maxScrollExtent > 0) {
               scrollController.animateTo(
                 scrollController.position.maxScrollExtent,
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeOut,
               );
-            });
-          }
+            }
+          });
+
           return ListView.builder(
             controller: scrollController,
-            itemCount: transcripts.length,
-            itemBuilder: (context, index) => Padding(
-              padding: const EdgeInsets.only(bottom: 8.0, top: 4.0),
-              child: Text(
-                transcripts[index],
-                style: GoogleFonts.plusJakartaSans(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+            itemCount: allItems.length,
+            itemBuilder: (context, index) {
+              final entry = allItems[index];
+              // 3. Mengecek apakah item ini adalah entri parsial yang sedang berjalan
+              final isPartial = (partialEntry != null && partialEntry.text.isNotEmpty) && (index == allItems.length - 1);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                // 4. Menggunakan Text.rich untuk styling yang kompleks
+                child: Text.rich(
+                  TextSpan(
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: "${entry.speakerId}: ",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isPartial ? entry.color.withOpacity(0.7) : entry.color,
+                          // Memberikan highlight jika ini adalah transkrip parsial
+                          backgroundColor: isPartial ? Colors.white.withOpacity(0.2) : Colors.transparent,
+                        ),
+                      ),
+                      TextSpan(
+                        text: entry.text,
+                        style: TextStyle(
+                          color: isPartial ? Colors.white.withOpacity(0.7) : Colors.white,
+                          // Memberikan highlight jika ini adalah transkrip parsial
+                          backgroundColor: isPartial ? Colors.white.withOpacity(0.2) : Colors.transparent,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),

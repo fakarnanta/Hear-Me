@@ -1,14 +1,6 @@
 import 'dart:io';
 
-import 'package:bitsdojo_window/bitsdojo_window.dart'
-    show
-        doWhenWindowReady,
-        appWindow,
-        MoveWindow,
-        WindowButtonColors,
-        MinimizeWindowButton,
-        MaximizeWindowButton,
-        CloseWindowButton;
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,26 +21,41 @@ import 'package:hear_me/services/azure_stt_bridge.dart';
 import 'package:hear_me/services/gemini_summary_service.dart';
 import 'package:hear_me/services/livestream_service.dart';
 import 'package:hear_me/services/whiteboard_stream_service.dart';
+import 'package:hear_me/vocabulary_page.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 List<CameraDescription> cameras = [];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    print("env path: ${Directory.current.path}");
+    await dotenv.load(fileName: ".env");
+    print("..");
+  } catch (e) {
+    print("Error loading .env file: $e");
+  }
   cameras = await availableCameras();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await initializeGoogleSignIn(); 
+  await initializeGoogleSignIn();
   runApp(
     MultiProvider(
-           providers: [
+      providers: [
         ChangeNotifierProvider(create: (context) => OnboardingProvider()),
         Provider(create: (context) => AzureSttBridgeService()),
-        Provider(create: (context) => LivestreamService()),
-        Provider(create: (context) => GeminiSummaryService()),
+        Provider<LivestreamService>(
+          create: (context) => LivestreamService(
+              sttBridge: context.read<AzureSttBridgeService>()),
+          lazy: false,
+        ),
+        Provider(
+            create: (context) =>
+                GeminiSummaryService(apiKey: dotenv.env['GEMINI_API_KEY']!)),
       ],
       child: const MyApp(),
     ),
@@ -68,13 +75,13 @@ void main() async {
 Future<void> initializeGoogleSignIn() async {
   try {
     await GoogleSignIn.instance.initialize(
-      serverClientId: "591091586203-km1a7uulr152q2aic5n8vdhlg6hnm88m.apps.googleusercontent.com",
+      serverClientId:
+          "591091586203-km1a7uulr152q2aic5n8vdhlg6hnm88m.apps.googleusercontent.com",
     );
   } catch (e) {
     print("Error initializing Google Sign In: $e");
   }
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -101,10 +108,10 @@ class MyApp extends StatelessWidget {
             pageContent = const GetStarted();
             break;
           case '/gemini':
-            pageContent = GeminiClientScreen();
+            pageContent = const GeminiClientScreen();
             break;
           case '/home':
-            pageContent = HomePage();
+            pageContent = const HomePage();
             break;
           case '/stt':
             pageContent = const TranscriptionPage();
@@ -113,14 +120,18 @@ class MyApp extends StatelessWidget {
             pageContent = const LiveStreamPage();
             break;
           case '/stt-windows':
-            pageContent = TranscriptionPageWindows();
+            final sessionId = settings.arguments as String?;
+            pageContent = TranscriptionPageWindows(sessionId: sessionId);
+            break;
+          case '/kosakata':
+            final sessionId = settings.arguments as String? ?? 'default';
+            pageContent = VocabularyPage(sessionId: sessionId);
             break;
           default:
             pageContent = const GetStarted();
         }
 
-     
-          return MaterialPageRoute(builder: (_) => pageContent);
+        return MaterialPageRoute(builder: (_) => pageContent);
       },
     );
   }

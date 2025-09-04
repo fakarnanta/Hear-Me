@@ -14,13 +14,9 @@ class DrawingPainter extends CustomPainter {
 
 @override
 void paint(Canvas canvas, Size size) {
- 
-  canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
-
   for (var drawingPath in paths) {
     canvas.drawPath(drawingPath.path, drawingPath.paint);
   }
-  canvas.restore();
 }
 
   @override

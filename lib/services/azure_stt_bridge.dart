@@ -25,6 +25,26 @@ class AzureSttBridgeService {
     }
   }
 
+  void sendPhraseList(List<String> phrases) {
+  if (_ws != null && _ws!.readyState == WebSocket.open) {
+    try {
+      // Buat payload sesuai format yang diharapkan server
+      final message = {
+        "type": "set_phraselist",
+        "payload": phrases,
+      };
+      
+      final jsonString = json.encode(message);
+      print('[SEND_PHRASELIST] Mengirim: $jsonString'); // Log untuk debugging
+      _ws!.add(jsonString);
+    } catch (e) {
+      print('Error sending phrase list: $e');
+    }
+  } else {
+    print('Gagal mengirim phrase list: WebSocket tidak terhubung.');
+  }
+}
+
   Future<void> startBridgeExe() async {
     // jalankan EXE bridge
     final exePath = Platform.isWindows
@@ -79,36 +99,59 @@ class AzureSttBridgeService {
   }
 
   Future<void> startListening({String? language}) async {
-    if (_ws == null) throw StateError('Bridge not connected');
-    if (language != null) {
-      _ws!.add(json.encode({'cmd': 'LANG', 'value': language}));
+    if (_ws == null || _ws!.readyState != WebSocket.open) {
+      throw StateError('Bridge not connected or WebSocket is not open.');
     }
-    
-    final stream = await _audioRecorder.startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1));
-    _audioStreamSubscription = stream.listen((data) {
-      _ws?.add(data);
-    });
+
+    // 1. Kirim perintah 'start' ke server C#
+    _ws!.add(json.encode({'type': 'start_listening'}));
+    print('[CMD] Sent start_listening');
+
+    // 2. Mulai streaming audio dari recorder
+    final stream = await _audioRecorder.startStream(const RecordConfig(
+        encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1));
+    _audioStreamSubscription = stream.listen(
+      (data) {
+        // Pastikan WebSocket masih terbuka sebelum mengirim data
+        if (_ws != null && _ws!.readyState == WebSocket.open) {
+          _ws!.add(data);
+        }
+      },
+      onError: (error) {
+        print('Audio stream error: $error');
+        _controller.add({'type': 'error', 'message': 'Audio stream error: $error'});
+        // Pertimbangkan untuk memanggil stopListening di sini untuk membersihkan
+        stopListening();
+      },
+    );
 
     _controller.add({'type': 'info', 'message': 'started'});
   }
 
-Future<void> stopListening() async {
-  if (_ws == null) return;
-  
-  try {
-    print("Mencoba menghentikan audio recorder...");
-    await _audioRecorder.stop();
-    await _audioStreamSubscription?.cancel();
-    _audioStreamSubscription = null; // Bersihkan subscription setelah dibatalkan
-    print("Audio recorder berhasil dihentikan.");
-  } catch (e) {
-    print("Error saat menghentikan audio recorder: $e");
-    // Kirim pesan error ke UI jika diperlukan
-    _controller.add({'type': 'error', 'message': 'Gagal berhenti: $e'});
-  } finally {
-    // Kirim pesan konfirmasi 'stopped' ke UI di dalam blok finally.
-    // Ini menjamin _isListening akan di-set ke false di UI.
+  Future<void> stopListening() async {
+    if (_ws == null) return;
+
+    // 1. Hentikan recorder dan batalkan subscription
+    try {
+      if (await _audioRecorder.isRecording()) {
+        await _audioRecorder.stop();
+      }
+      await _audioStreamSubscription?.cancel();
+      _audioStreamSubscription = null;
+      print("Audio recorder and stream stopped.");
+    } catch (e) {
+      print("Error stopping audio recorder: $e");
+      _controller.add({'type': 'error', 'message': 'Failed to stop recorder: $e'});
+    }
+
+    // 2. Kirim perintah 'stop' ke server C#
+    if (_ws!.readyState == WebSocket.open) {
+      _ws!.add(json.encode({'type': 'stop_listening'}));
+      print('[CMD] Sent stop_listening');
+    }
+
+    // 3. Update UI state
+    // Kirim pesan 'stopped' untuk memastikan UI diperbarui.
     _controller.add({'type': 'info', 'message': 'stopped'});
   }
-}
 }

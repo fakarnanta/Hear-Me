@@ -158,7 +158,7 @@ class _MiddleHomepageState extends State<MiddleHomepage> {
           SizedBox(height: 40,),
             GestureDetector(
               onTap: () {
-              Navigator.pushNamed(context, '/stt-windows');
+              Navigator.pushNamed(context, '/kosakata', arguments: 'Binary Search');
               },
               child: Stack(
               children: [
